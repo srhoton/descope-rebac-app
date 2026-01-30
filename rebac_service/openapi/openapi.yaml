@@ -1,0 +1,257 @@
+---
+openapi: 3.0.3
+info:
+  title: ReBac Service API
+  description: REST API for managing Descope FGA (Fine-Grained Authorization) relation
+    tuples
+  contact:
+    name: Fullbay Team
+  version: 1.0.0
+servers:
+- url: http://localhost:8080
+  description: Auto generated value
+- url: http://0.0.0.0:8080
+  description: Auto generated value
+tags:
+- name: Relations
+  description: Operations for managing Fine-Grained Authorization relation tuples
+paths:
+  /relations:
+    post:
+      tags:
+      - Relations
+      summary: Create relation tuples
+      description: Creates one or more authorization relation tuples in the FGA system
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RelationRequest"
+      responses:
+        "201":
+          description: Relations created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Bad request - invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+      - Relations
+      summary: Delete relation tuples
+      description: Deletes one or more authorization relation tuples from the FGA
+        system
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RelationRequest"
+      responses:
+        "204":
+          description: Relations deleted successfully
+        "400":
+          description: Bad request - invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /relations/resource/{resourceId}:
+    get:
+      tags:
+      - Relations
+      summary: Get resource relations
+      description: Retrieves all authorization relation tuples associated with a specific
+        resource
+      parameters:
+      - name: resourceId
+        in: path
+        description: Resource identifier
+        required: true
+        schema:
+          type: string
+        example: document:123
+      responses:
+        "200":
+          description: Relations retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationsResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /relations/target/{targetId}:
+    get:
+      tags:
+      - Relations
+      summary: Get target access
+      description: Retrieves all resources and their relations that a specific target
+        (user/entity) can access
+      parameters:
+      - name: targetId
+        in: path
+        description: Target/subject identifier
+        required: true
+        schema:
+          type: string
+        example: user:alice@example.com
+      responses:
+        "200":
+          description: Access information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationsResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /relations/who-can-access:
+    get:
+      tags:
+      - Relations
+      summary: Query who can access resource
+      description: Queries and returns a list of targets (users/entities) that can
+        access a specific resource with the given relation
+      parameters:
+      - name: namespace
+        in: query
+        description: Namespace for the resource
+        required: true
+        schema:
+          type: string
+        example: documents
+      - name: relationDefinition
+        in: query
+        description: Relation definition/type
+        required: true
+        schema:
+          type: string
+        example: viewer
+      - name: resource
+        in: query
+        description: Resource identifier
+        required: true
+        schema:
+          type: string
+        example: document:123
+      responses:
+        "200":
+          description: Query successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TargetsResponse"
+        "400":
+          description: Bad request - missing required parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    ErrorResponse:
+      description: Error response information
+      type: object
+      properties:
+        error:
+          description: Error type
+          type: string
+          example: Failed to create relations
+        message:
+          description: Detailed error message
+          type: string
+          example: Relations list cannot be empty
+    RelationRequest:
+      description: Request payload for creating or deleting relation tuples
+      required:
+      - relations
+      type: object
+      properties:
+        relations:
+          description: List of relation tuples to create or delete
+          type: array
+          items:
+            $ref: "#/components/schemas/RelationTuple"
+    RelationTuple:
+      description: Authorization relation tuple defining a subject's access to a resource
+      required:
+      - resource
+      - relationDefinition
+      - namespace
+      - target
+      type: object
+      properties:
+        resource:
+          description: Resource identifier
+          type: string
+          example: document:123
+        relationDefinition:
+          description: Relation type/definition
+          type: string
+          example: viewer
+        namespace:
+          description: Namespace for the resource
+          type: string
+          example: documents
+        target:
+          description: Target/subject identifier
+          type: string
+          example: user:alice@example.com
+    RelationsResponse:
+      description: Response containing list of relation tuples
+      type: object
+      properties:
+        relations:
+          description: List of relation tuples
+          type: array
+          items:
+            $ref: "#/components/schemas/RelationTuple"
+    SuccessResponse:
+      description: Success response for operations
+      type: object
+      properties:
+        message:
+          description: Success message
+          type: string
+          example: Created 2 relation tuple(s)
+    TargetsResponse:
+      description: Response containing list of targets that can access a resource
+      type: object
+      properties:
+        targets:
+          description: List of target identifiers
+          type: array
+          items:
+            type: string
+          example:
+          - user:alice@example.com
+          - user:bob@example.com

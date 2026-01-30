@@ -19,12 +19,23 @@ import com.fullbay.rebacservice.model.RelationRequest;
 import com.fullbay.rebacservice.model.RelationTuple;
 import com.fullbay.rebacservice.service.RelationService;
 
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+
 import io.quarkus.logging.Log;
 
 /** REST resource for managing Descope FGA relation tuples. */
 @Path("/relations")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Tag(
+    name = "Relations",
+    description = "Operations for managing Fine-Grained Authorization relation tuples")
 public class RelationResource {
 
   @Inject RelationService relationService;
@@ -36,6 +47,23 @@ public class RelationResource {
    * @return HTTP 201 on success or HTTP 500 on error
    */
   @POST
+  @Operation(
+      summary = "Create relation tuples",
+      description = "Creates one or more authorization relation tuples in the FGA system")
+  @APIResponses({
+    @APIResponse(
+        responseCode = "201",
+        description = "Relations created successfully",
+        content = @Content(schema = @Schema(implementation = SuccessResponse.class))),
+    @APIResponse(
+        responseCode = "400",
+        description = "Bad request - invalid input",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   public Response createRelations(RelationRequest request) {
     try {
       if (request.getRelations() == null || request.getRelations().isEmpty()) {
@@ -65,6 +93,20 @@ public class RelationResource {
    * @return HTTP 204 on success or HTTP 500 on error
    */
   @DELETE
+  @Operation(
+      summary = "Delete relation tuples",
+      description = "Deletes one or more authorization relation tuples from the FGA system")
+  @APIResponses({
+    @APIResponse(responseCode = "204", description = "Relations deleted successfully"),
+    @APIResponse(
+        responseCode = "400",
+        description = "Bad request - invalid input",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   public Response deleteRelations(RelationRequest request) {
     try {
       if (request.getRelations() == null || request.getRelations().isEmpty()) {
@@ -93,10 +135,34 @@ public class RelationResource {
    */
   @GET
   @Path("/who-can-access")
+  @Operation(
+      summary = "Query who can access resource",
+      description =
+          "Queries and returns a list of targets (users/entities) that can access a specific resource with the given relation")
+  @APIResponses({
+    @APIResponse(
+        responseCode = "200",
+        description = "Query successful",
+        content = @Content(schema = @Schema(implementation = TargetsResponse.class))),
+    @APIResponse(
+        responseCode = "400",
+        description = "Bad request - missing required parameters",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   public Response whoCanAccess(
-      @QueryParam("resource") String resource,
-      @QueryParam("relationDefinition") String relationDefinition,
-      @QueryParam("namespace") String namespace) {
+      @Parameter(description = "Resource identifier", required = true, example = "document:123")
+          @QueryParam("resource")
+          String resource,
+      @Parameter(description = "Relation definition/type", required = true, example = "viewer")
+          @QueryParam("relationDefinition")
+          String relationDefinition,
+      @Parameter(description = "Namespace for the resource", required = true, example = "documents")
+          @QueryParam("namespace")
+          String namespace) {
     try {
       if (resource == null || relationDefinition == null || namespace == null) {
         return Response.status(Response.Status.BAD_REQUEST)
@@ -124,7 +190,24 @@ public class RelationResource {
    */
   @GET
   @Path("/resource/{resourceId}")
-  public Response getResourceRelations(@PathParam("resourceId") String resourceId) {
+  @Operation(
+      summary = "Get resource relations",
+      description =
+          "Retrieves all authorization relation tuples associated with a specific resource")
+  @APIResponses({
+    @APIResponse(
+        responseCode = "200",
+        description = "Relations retrieved successfully",
+        content = @Content(schema = @Schema(implementation = RelationsResponse.class))),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public Response getResourceRelations(
+      @Parameter(description = "Resource identifier", required = true, example = "document:123")
+          @PathParam("resourceId")
+          String resourceId) {
     try {
       List<RelationTuple> relations = relationService.getResourceRelations(resourceId);
       return Response.ok(new RelationsResponse(relations)).build();
@@ -144,7 +227,27 @@ public class RelationResource {
    */
   @GET
   @Path("/target/{targetId}")
-  public Response getTargetAccess(@PathParam("targetId") String targetId) {
+  @Operation(
+      summary = "Get target access",
+      description =
+          "Retrieves all resources and their relations that a specific target (user/entity) can access")
+  @APIResponses({
+    @APIResponse(
+        responseCode = "200",
+        description = "Access information retrieved successfully",
+        content = @Content(schema = @Schema(implementation = RelationsResponse.class))),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public Response getTargetAccess(
+      @Parameter(
+              description = "Target/subject identifier",
+              required = true,
+              example = "user:alice@example.com")
+          @PathParam("targetId")
+          String targetId) {
     try {
       List<RelationTuple> relations = relationService.getTargetAccess(targetId);
       return Response.ok(new RelationsResponse(relations)).build();
@@ -157,8 +260,12 @@ public class RelationResource {
   }
 
   /** Error response model for API errors. */
+  @Schema(description = "Error response information")
   public static class ErrorResponse {
+    @Schema(description = "Error type", example = "Failed to create relations")
     public String error;
+
+    @Schema(description = "Detailed error message", example = "Relations list cannot be empty")
     public String message;
 
     public ErrorResponse(String error, String message) {
@@ -168,7 +275,9 @@ public class RelationResource {
   }
 
   /** Success response model for successful operations. */
+  @Schema(description = "Success response for operations")
   public static class SuccessResponse {
+    @Schema(description = "Success message", example = "Created 2 relation tuple(s)")
     public String message;
 
     public SuccessResponse(String message) {
@@ -177,7 +286,11 @@ public class RelationResource {
   }
 
   /** Response model for who-can-access queries. */
+  @Schema(description = "Response containing list of targets that can access a resource")
   public static class TargetsResponse {
+    @Schema(
+        description = "List of target identifiers",
+        example = "[\"user:alice@example.com\", \"user:bob@example.com\"]")
     public List<String> targets;
 
     public TargetsResponse(List<String> targets) {
@@ -186,7 +299,9 @@ public class RelationResource {
   }
 
   /** Response model for relation queries. */
+  @Schema(description = "Response containing list of relation tuples")
   public static class RelationsResponse {
+    @Schema(description = "List of relation tuples")
     public List<RelationTuple> relations;
 
     public RelationsResponse(List<RelationTuple> relations) {

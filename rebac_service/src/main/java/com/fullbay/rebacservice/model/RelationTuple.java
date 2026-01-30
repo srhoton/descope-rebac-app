@@ -2,19 +2,29 @@ package com.fullbay.rebacservice.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
 /** Represents a ReBAC relation tuple defining authorization relationship. */
+@Schema(description = "Authorization relation tuple defining a subject's access to a resource")
 public class RelationTuple {
 
   @JsonProperty("resource")
+  @Schema(description = "Resource identifier", required = true, example = "document:123")
   private String resource;
 
   @JsonProperty("relationDefinition")
+  @Schema(description = "Relation type/definition", required = true, example = "viewer")
   private String relationDefinition;
 
   @JsonProperty("namespace")
+  @Schema(description = "Namespace for the resource", required = true, example = "documents")
   private String namespace;
 
   @JsonProperty("target")
+  @Schema(
+      description = "Target/subject identifier",
+      required = true,
+      example = "user:alice@example.com")
   private String target;
 
   /** Default constructor for JSON deserialization. */
