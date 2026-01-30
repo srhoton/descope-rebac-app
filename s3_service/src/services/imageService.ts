@@ -162,10 +162,12 @@ export class ImageService {
     await this.uploadImage(file, uploadUrlData.uploadUrl);
 
     // Step 3: Create ownership relation in ReBaC
-    await appSyncClient.createImageOwnership(uploadUrlData.imageId, userId);
+    // Extract the filename from s3Key (includes extension) for proper lookup later
+    const imageFilename = uploadUrlData.s3Key.split('/').pop() ?? uploadUrlData.imageId;
+    await appSyncClient.createImageOwnership(imageFilename, userId);
 
     return {
-      imageId: uploadUrlData.imageId,
+      imageId: imageFilename,
       s3Key: uploadUrlData.s3Key,
     };
   }

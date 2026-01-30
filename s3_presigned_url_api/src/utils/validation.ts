@@ -14,6 +14,17 @@ export function isValidUUID(uuid: string): boolean {
 }
 
 /**
+ * Validates if a string is a valid image ID (UUID with optional extension)
+ * Accepts formats like: "uuid" or "uuid.png"
+ */
+export function isValidImageId(imageId: string): boolean {
+  // UUID with optional file extension
+  const imageIdRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}(\.[a-z0-9]+)?$/i;
+  return imageIdRegex.test(imageId);
+}
+
+/**
  * Validates if a string is not empty after trimming
  */
 export function isNonEmptyString(value: unknown): value is string {
@@ -122,11 +133,11 @@ export function validateDownloadRequest(data: unknown): ValidationResult {
 
   const request = data as Record<string, unknown>;
 
-  // Validate imageId
+  // Validate imageId (UUID with optional extension like uuid.png)
   if (!isNonEmptyString(request['imageId'])) {
     errors.push('imageId is required and must be a non-empty string');
-  } else if (!isValidUUID(request['imageId'])) {
-    errors.push('imageId must be a valid UUID');
+  } else if (!isValidImageId(request['imageId'])) {
+    errors.push('imageId must be a valid UUID or UUID with extension');
   }
 
   // Validate userId

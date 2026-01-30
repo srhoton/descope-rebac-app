@@ -15,10 +15,15 @@ if (!DESCOPE_PROJECT_ID) {
 
 /**
  * Main application component
+ * Uses cookie-based session sharing via custom Descope domain
+ * Cookie management is configured in Descope console
  */
 function App() {
   return (
-    <AuthProvider projectId={DESCOPE_PROJECT_ID}>
+    <AuthProvider
+      projectId={DESCOPE_PROJECT_ID}
+      baseUrl="https://auth.sb.fullbay.com"
+    >
       <BrowserRouter>
         <Routes>
           <Route

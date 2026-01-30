@@ -45,7 +45,10 @@ if (!root) {
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <AuthProvider projectId={projectId}>
+      <AuthProvider
+        projectId={projectId}
+        baseUrl="https://auth.sb.fullbay.com"
+      >
         <App />
       </AuthProvider>
     </ErrorBoundary>

@@ -41,9 +41,10 @@ function HomePage(): React.ReactElement {
   }, [searchParams]);
 
   // Redirect after authentication
+  // Session is shared via cookies, so no need to pass tokens in URL
   const redirectAfterAuth = useCallback(() => {
     if (returnUrl) {
-      // Redirect to external service
+      // Simply redirect - session cookie is shared across subdomains
       window.location.href = returnUrl;
     } else {
       // Stay on IDP service profile page
