@@ -1,103 +1,96 @@
-# SDLC Plan: Member Service for Descope ReBac Application
+# SDLC Plan: Add OpenAPI Specifications to Java Services
 
-## Status: In Progress
-## Created: 2026-01-29
-## Last Updated: 2026-01-29
+## Status: Complete
+## Created: 2026-01-29T10:00:00Z
+## Last Updated: 2026-01-29T19:30:00Z
 
 ## Original Request
-> In a new directory called 'member_service', we need to create a new Quarkus based Java21 lambda service that will do CRUD operations against descope members in a tenant in a project. It should:
-> - be deployed in an existing VPC (default value should be 'vpc-03163f35ccd0fc6a9')
-> - in private subnets (which can be determined from the tag 'tier' with value 'private')
-> - behind an existing alb (default arn should be arn:aws:elasticloadbalancing:us-west-2:345594586248:loadbalager/app/external-private-alb/720e2b5474d3d602)
-> - Use terraform (in a new directory called terraform at the root) to fully build and deploy. Local state is fine.
-> - It should use the Descope Java SDK (https://github.com/descope/descope-java) for all operations.
-> - The project id and management key should be provided via secrets manager and injected as environment variables into the lambda. They default secret name is 'sandbox/descope/rebac', which has two keys: 'projectId' and 'managementKey'.
-> - Be REST compliant and have endpoints for Create, Read, Update, and Delete operations on members in a tenant.
-> - The tenant id should be provided as a path parameter.
-> - Include proper error handling and logging.
-> - Deployed to the us-west-2 region.
+> For each of the 3 Java repos (org_service, member_service, rebac_service), please instrument the creation of OpenAPI specs for these services, and put the OpenAPI spec in the openapi folder of each service.
 >
-> **IMPORTANT CONTEXT**: There is an existing `org_service` in this repo that was previously built for tenant CRUD operations. The terraform infrastructure already exists in `terraform/` directory.
+> IMPORTANT CONTEXT:
+> - These are Quarkus-based Java 21 Lambda services
+> - Each service already has REST endpoints defined with JAX-RS annotations
+> - The services are located at:
+>   - /Users/steverhoton/git/descope-rebac-app/org_service/
+>   - /Users/steverhoton/git/descope-rebac-app/member_service/
+>   - /Users/steverhoton/git/descope-rebac-app/rebac_service/
+> - Use Quarkus SmallRye OpenAPI extension to generate specs
+> - Put the generated/static OpenAPI specs in an `openapi/` folder within each service
 
 ## Clarifications
-- **Terraform Structure**: The existing terraform in `/terraform` directory already handles Lambda deployment for org_service. We will extend this infrastructure to support member_service by adding a second Lambda function and ALB listener rule.
-- **Member Operations Scope**: Based on Descope SDK documentation, member operations will include: create member in tenant, get member by login ID, update member, delete member, and list members in a tenant (with pagination).
-- **API Path Pattern**: Members will be accessed via path: `/tenants/{tenantId}/members` and `/tenants/{tenantId}/members/{loginId}` to indicate the hierarchical relationship.
-- **Build Process**: Following org_service pattern, member_service will use Gradle with Quarkus, Spotless for formatting, and JUnit 5 for testing.
-- **Lambda Config**: 1024MB memory, 60s timeout, SnapStart enabled (same as org_service)
-- **Logging**: JSON format, 7 days CloudWatch retention (same as org_service)
+None required - requirements are clear.
 
 ## Architecture Overview
-
-The member_service is a Java 21-based Quarkus Lambda microservice that provides CRUD operations for Descope members within tenants. It follows the same architecture as the existing org_service:
-
-- **Backend Service**: Java 21 Quarkus Lambda function
-- **API Gateway**: AWS Application Load Balancer (ALB) with path-based routing
-- **Infrastructure**: AWS Lambda in VPC with private subnets
-- **State Management**: Terraform local state (can be migrated to remote later)
-- **Security**: Secrets Manager for credentials, VPC security groups for network isolation
+This task involves instrumenting OpenAPI specification generation for three existing Quarkus-based Java 21 Lambda services. Each service has JAX-RS REST endpoints that will be annotated with OpenAPI metadata using the Quarkus SmallRye OpenAPI extension. The OpenAPI specifications will be generated and stored in an `openapi/` folder within each service directory.
 
 ## Components
 
-### Component: Member Service - Java Application
+### Component: org_service OpenAPI
 - **Type**: backend
-- **Technology**: Java 21 / Quarkus / Gradle
+- **Technology**: Java 21 / Quarkus
 - **Subagent**: java-quarkus-agent
-- **Status**: Implementation Complete (Tests Need Updates)
-- **Dependencies**: None (standalone service)
-- **Description**: Quarkus-based Lambda service providing REST API for member CRUD operations in Descope tenants
+- **Status**: Approved
+- **Dependencies**: []
+- **Description**: Add SmallRye OpenAPI extension to org_service, annotate TenantResource endpoints with OpenAPI metadata, configure OpenAPI generation, and create openapi/ folder with generated spec
 - **Files**:
-  - `member_service/build.gradle` - Gradle build configuration
-  - `member_service/gradle.properties` - Gradle properties
-  - `member_service/settings.gradle` - Gradle settings
-  - `member_service/gradlew` - Gradle wrapper script
-  - `member_service/.gitignore` - Git ignore patterns
-  - `member_service/src/main/java/com/fullbay/memberservice/MemberResource.java` - REST API endpoints
-  - `member_service/src/main/java/com/fullbay/memberservice/service/MemberService.java` - Business logic for member operations
-  - `member_service/src/main/java/com/fullbay/memberservice/config/DescopeConfig.java` - Descope client configuration
-  - `member_service/src/main/java/com/fullbay/memberservice/model/Member.java` - Member data model
-  - `member_service/src/main/java/com/fullbay/memberservice/model/MemberRequest.java` - Member request DTO
-  - `member_service/src/main/java/com/fullbay/memberservice/model/PaginatedResponse.java` - Paginated response wrapper
-  - `member_service/src/main/resources/application.properties` - Application configuration
-  - `member_service/src/test/java/com/fullbay/memberservice/MemberResourceTest.java` - REST endpoint tests
-  - `member_service/src/test/java/com/fullbay/memberservice/service/MemberServiceTest.java` - Service layer tests
-  - `member_service/src/test/resources/application.properties` - Test configuration
-  - `member_service/README.md` - Service documentation
-- **Review History**: None yet
+  - /Users/steverhoton/git/descope-rebac-app/org_service/build.gradle (add dependency)
+  - /Users/steverhoton/git/descope-rebac-app/org_service/src/main/resources/application.properties (configure OpenAPI)
+  - /Users/steverhoton/git/descope-rebac-app/org_service/src/main/java/com/fullbay/orgservice/TenantResource.java (add annotations)
+  - /Users/steverhoton/git/descope-rebac-app/org_service/src/main/java/com/fullbay/orgservice/model/Tenant.java (add schema annotations)
+  - /Users/steverhoton/git/descope-rebac-app/org_service/src/main/java/com/fullbay/orgservice/model/TenantRequest.java (add schema annotations)
+  - /Users/steverhoton/git/descope-rebac-app/org_service/src/main/java/com/fullbay/orgservice/model/PaginatedResponse.java (add schema annotations)
+  - /Users/steverhoton/git/descope-rebac-app/org_service/openapi/openapi.yaml (generated spec)
+- **Review History**:
 
-### Component: Terraform Infrastructure Extension
-- **Type**: infrastructure
-- **Technology**: Terraform / AWS
-- **Subagent**: terraform-agent
-- **Status**: Pending
-- **Dependencies**: Member Service - Java Application (needs function.zip to exist)
-- **Description**: Extend existing Terraform infrastructure to deploy member_service Lambda with ALB integration
+### Component: member_service OpenAPI
+- **Type**: backend
+- **Technology**: Java 21 / Quarkus
+- **Subagent**: java-quarkus-agent
+- **Status**: Approved
+- **Dependencies**: []
+- **Description**: Add SmallRye OpenAPI extension to member_service, annotate MemberResource endpoints with OpenAPI metadata, configure OpenAPI generation, and create openapi/ folder with generated spec
 - **Files**:
-  - `terraform/lambda.tf` - Add member_service Lambda function resource alongside org_service
-  - `terraform/alb.tf` - Add member_service target group and listener rule with priority 240
-  - `terraform/cloudwatch.tf` - Add CloudWatch log group for member_service
-  - `terraform/outputs.tf` - Add member_service Lambda ARN and endpoint outputs
-- **Review History**: None yet
+  - /Users/steverhoton/git/descope-rebac-app/member_service/build.gradle (add dependency)
+  - /Users/steverhoton/git/descope-rebac-app/member_service/src/main/resources/application.properties (configure OpenAPI)
+  - /Users/steverhoton/git/descope-rebac-app/member_service/src/main/java/com/fullbay/memberservice/MemberResource.java (add annotations)
+  - /Users/steverhoton/git/descope-rebac-app/member_service/src/main/java/com/fullbay/memberservice/model/Member.java (add schema annotations)
+  - /Users/steverhoton/git/descope-rebac-app/member_service/src/main/java/com/fullbay/memberservice/model/MemberRequest.java (add schema annotations)
+  - /Users/steverhoton/git/descope-rebac-app/member_service/src/main/java/com/fullbay/memberservice/model/PaginatedResponse.java (add schema annotations)
+  - /Users/steverhoton/git/descope-rebac-app/member_service/openapi/openapi.yaml (generated spec)
+- **Review History**:
+
+### Component: rebac_service OpenAPI
+- **Type**: backend
+- **Technology**: Java 21 / Quarkus
+- **Subagent**: java-quarkus-agent
+- **Status**: Approved
+- **Dependencies**: []
+- **Description**: Add SmallRye OpenAPI extension to rebac_service, annotate RelationResource endpoints with OpenAPI metadata, configure OpenAPI generation, and create openapi/ folder with generated spec
+- **Files**:
+  - /Users/steverhoton/git/descope-rebac-app/rebac_service/build.gradle (add dependency)
+  - /Users/steverhoton/git/descope-rebac-app/rebac_service/src/main/resources/application.properties (configure OpenAPI)
+  - /Users/steverhoton/git/descope-rebac-app/rebac_service/src/main/java/com/fullbay/rebacservice/RelationResource.java (add annotations)
+  - /Users/steverhoton/git/descope-rebac-app/rebac_service/src/main/java/com/fullbay/rebacservice/model/RelationTuple.java (add schema annotations)
+  - /Users/steverhoton/git/descope-rebac-app/rebac_service/src/main/java/com/fullbay/rebacservice/model/RelationRequest.java (add schema annotations)
+  - /Users/steverhoton/git/descope-rebac-app/rebac_service/openapi/openapi.yaml (generated spec)
+- **Review History**:
 
 ## Implementation Order
+1. org_service OpenAPI - Independent service, no dependencies
+2. member_service OpenAPI - Independent service, no dependencies
+3. rebac_service OpenAPI - Independent service, no dependencies
 
-1. **Member Service - Java Application**
-   - Reason: Must be built first to generate function.zip that Terraform references
-   - The Gradle build will produce the Lambda deployment artifact at `member_service/build/function.zip`
-
-2. **Terraform Infrastructure Extension**
-   - Reason: Depends on the function.zip artifact from the Java application build
-   - Will extend existing infrastructure to support second Lambda service
+Note: All three services are independent and can be implemented in parallel, but will be done sequentially for clarity and to ensure consistency across all implementations.
 
 ## Commits
-
-- [ ] Member Service: Add Quarkus-based member management Lambda service with Descope SDK integration
-- [ ] Infrastructure: Extend Terraform to deploy member_service Lambda with ALB routing
+- [x] org_service: Add OpenAPI specification with SmallRye OpenAPI extension (commit: fb819e6)
+- [x] member_service: Add OpenAPI specification with SmallRye OpenAPI extension (commit: 82953ed)
+- [x] rebac_service: Add OpenAPI specification with SmallRye OpenAPI extension (commit: 281c7f6)
 
 ## Current Phase
-**Phase**: 2-Implementation
-**Current Component**: Member Service - Java Application
-**Current Action**: Dispatching to java-quarkus-agent for implementation
+**Phase**: 4-Commit
+**Current Component**: All components complete
+**Current Action**: All OpenAPI specifications successfully implemented and committed
 
 ## Error Log
-None yet.
+No errors encountered.
