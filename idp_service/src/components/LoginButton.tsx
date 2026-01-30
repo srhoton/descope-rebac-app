@@ -1,25 +1,22 @@
 import React from 'react';
-import { useDescope, useSession } from '@descope/react-sdk';
+import { useSession } from '@descope/react-sdk';
+import { getDescopeProjectId } from '../utils/descope.utils';
 
 /**
  * Login button component that redirects to Descope hosted page
  */
 function LoginButton(): React.ReactElement {
   const { isSessionLoading } = useSession();
-  const sdk = useDescope();
 
   const handleLogin = (): void => {
-    // Use Descope flow to redirect to hosted page
-    // The SDK will handle the redirect back to the application
-    const redirectUrl = window.location.origin + '/profile';
+    // Redirect to Descope hosted login page
+    const projectId = getDescopeProjectId();
+    const redirectUrl = encodeURIComponent(window.location.origin + '/profile');
 
-    // Start the authentication flow
-    // Descope SDK will redirect to hosted page automatically
-    sdk.flow.start('sign-up-or-in', {
-      redirectUrl,
-    }).catch((error: Error) => {
-      console.error('Login failed:', error);
-    });
+    // Descope hosted auth URL format
+    const authUrl = `https://auth.descope.com/${projectId}?flow=sign-up-or-in&redirect_url=${redirectUrl}`;
+
+    window.location.href = authUrl;
   };
 
   return (
