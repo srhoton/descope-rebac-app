@@ -1,0 +1,1 @@
+Session prompts: Cross-subdomain authentication between descope-idp.sb.fullbay.com and descope-s3.sb.fullbay.com using Descope custom domain (auth.sb.fullbay.com) with cookie-based session sharing. Fixed CSP issues for Descope, AppSync, API Gateway, and S3. Fixed image download URL generation by including file extension in ReBaC relations.
