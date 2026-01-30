@@ -2,7 +2,7 @@
  * Custom hook for Descope authentication
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useUser } from '@descope/react-sdk';
 
 export interface UseDescopeResult {
@@ -21,11 +21,9 @@ export interface UseDescopeResult {
  */
 export function useDescope(): UseDescopeResult {
   const { user, isUserLoading } = useUser();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  useEffect(() => {
-    setIsAuthenticated(!!user);
-  }, [user]);
+  // Derive isAuthenticated directly from user to avoid race conditions
+  const isAuthenticated = !!user;
 
   const logout = useCallback(() => {
     // Redirect to IDP service logout
@@ -37,13 +35,14 @@ export function useDescope(): UseDescopeResult {
     }
   }, []);
 
-  const userProfile = user
-    ? {
-        userId: user.userId,
-        ...(user.email !== undefined && { email: user.email }),
-        ...(user.name !== undefined && { name: user.name }),
-      }
-    : null;
+  const userProfile = useMemo(() => {
+    if (!user) return null;
+    return {
+      userId: user.userId,
+      ...(user.email !== undefined && { email: user.email }),
+      ...(user.name !== undefined && { name: user.name }),
+    };
+  }, [user]);
 
   return {
     isAuthenticated,
