@@ -4,26 +4,34 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
 /**
  * Generic paginated response wrapper.
  *
  * @param <T> The type of items in the response
  */
+@Schema(description = "Paginated response containing items and pagination metadata")
 public class PaginatedResponse<T> {
 
   @JsonProperty("items")
+  @Schema(description = "List of items in the current page")
   private List<T> items;
 
   @JsonProperty("page")
+  @Schema(description = "Current page number (0-indexed)", example = "0")
   private int page;
 
   @JsonProperty("pageSize")
+  @Schema(description = "Number of items per page", example = "20")
   private int pageSize;
 
   @JsonProperty("totalItems")
+  @Schema(description = "Total number of items across all pages", example = "100")
   private long totalItems;
 
   @JsonProperty("totalPages")
+  @Schema(description = "Total number of pages", example = "5")
   private int totalPages;
 
   public PaginatedResponse() {}

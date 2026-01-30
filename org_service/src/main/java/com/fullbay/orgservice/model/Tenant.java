@@ -2,13 +2,18 @@ package com.fullbay.orgservice.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+
 /** Represents a Descope tenant with basic information. */
+@Schema(description = "Descope tenant information")
 public class Tenant {
 
   @JsonProperty("id")
+  @Schema(description = "Unique tenant identifier", example = "T123456789")
   private String id;
 
   @JsonProperty("name")
+  @Schema(description = "Tenant name", example = "Acme Corporation")
   private String name;
 
   public Tenant() {}

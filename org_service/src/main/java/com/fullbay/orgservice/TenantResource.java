@@ -20,12 +20,21 @@ import com.fullbay.orgservice.model.Tenant;
 import com.fullbay.orgservice.model.TenantRequest;
 import com.fullbay.orgservice.service.TenantService;
 
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+
 import io.quarkus.logging.Log;
 
 /** REST resource for managing Descope tenants. */
 @Path("/tenants")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Tag(name = "Tenants", description = "Operations for managing Descope tenants")
 public class TenantResource {
 
   @Inject TenantService tenantService;
@@ -37,6 +46,19 @@ public class TenantResource {
    * @return HTTP 201 with the created tenant or HTTP 500 on error
    */
   @POST
+  @Operation(
+      summary = "Create a new tenant",
+      description = "Creates a new tenant in the Descope project")
+  @APIResponses({
+    @APIResponse(
+        responseCode = "201",
+        description = "Tenant created successfully",
+        content = @Content(schema = @Schema(implementation = Tenant.class))),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   public Response createTenant(TenantRequest request) {
     try {
       Tenant tenant = tenantService.createTenant(request);
@@ -57,7 +79,26 @@ public class TenantResource {
    */
   @GET
   @Path("/{tenantId}")
-  public Response getTenant(@PathParam("tenantId") String tenantId) {
+  @Operation(
+      summary = "Get tenant by ID",
+      description = "Retrieves a tenant by its unique identifier")
+  @APIResponses({
+    @APIResponse(
+        responseCode = "200",
+        description = "Tenant found",
+        content = @Content(schema = @Schema(implementation = Tenant.class))),
+    @APIResponse(
+        responseCode = "404",
+        description = "Tenant not found",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public Response getTenant(
+      @Parameter(description = "Tenant unique identifier", required = true) @PathParam("tenantId")
+          String tenantId) {
     try {
       Tenant tenant = tenantService.getTenant(tenantId);
       return Response.ok(tenant).build();
@@ -82,9 +123,28 @@ public class TenantResource {
    * @return HTTP 200 with paginated tenants or HTTP 500 on error
    */
   @GET
+  @Operation(
+      summary = "List all tenants",
+      description = "Retrieves all tenants with pagination support")
+  @APIResponses({
+    @APIResponse(
+        responseCode = "200",
+        description = "Tenants retrieved successfully",
+        content = @Content(schema = @Schema(implementation = PaginatedResponse.class))),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   public Response getAllTenants(
-      @QueryParam("page") @DefaultValue("0") int page,
-      @QueryParam("pageSize") @DefaultValue("20") int pageSize) {
+      @Parameter(description = "Page number (0-indexed)", example = "0")
+          @QueryParam("page")
+          @DefaultValue("0")
+          int page,
+      @Parameter(description = "Number of items per page", example = "20")
+          @QueryParam("pageSize")
+          @DefaultValue("20")
+          int pageSize) {
     try {
       PaginatedResponse<Tenant> response = tenantService.getAllTenants(page, pageSize);
       return Response.ok(response).build();
@@ -105,7 +165,21 @@ public class TenantResource {
    */
   @PUT
   @Path("/{tenantId}")
-  public Response updateTenant(@PathParam("tenantId") String tenantId, TenantRequest request) {
+  @Operation(summary = "Update tenant", description = "Updates an existing tenant's information")
+  @APIResponses({
+    @APIResponse(
+        responseCode = "200",
+        description = "Tenant updated successfully",
+        content = @Content(schema = @Schema(implementation = Tenant.class))),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public Response updateTenant(
+      @Parameter(description = "Tenant unique identifier", required = true) @PathParam("tenantId")
+          String tenantId,
+      TenantRequest request) {
     try {
       Tenant tenant = tenantService.updateTenant(tenantId, request);
       return Response.ok(tenant).build();
@@ -125,7 +199,17 @@ public class TenantResource {
    */
   @DELETE
   @Path("/{tenantId}")
-  public Response deleteTenant(@PathParam("tenantId") String tenantId) {
+  @Operation(summary = "Delete tenant", description = "Deletes a tenant by its unique identifier")
+  @APIResponses({
+    @APIResponse(responseCode = "204", description = "Tenant deleted successfully"),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public Response deleteTenant(
+      @Parameter(description = "Tenant unique identifier", required = true) @PathParam("tenantId")
+          String tenantId) {
     try {
       tenantService.deleteTenant(tenantId);
       return Response.noContent().build();
@@ -138,8 +222,12 @@ public class TenantResource {
   }
 
   /** Error response model for API errors. */
+  @Schema(description = "Error response information")
   public static class ErrorResponse {
+    @Schema(description = "Error type", example = "Failed to create tenant")
     public String error;
+
+    @Schema(description = "Detailed error message", example = "Tenant name cannot be empty")
     public String message;
 
     public ErrorResponse(String error, String message) {
