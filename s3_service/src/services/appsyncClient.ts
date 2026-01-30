@@ -4,7 +4,7 @@
 
 import type { RelationTuple } from '../types/image';
 
-const APPSYNC_API_URL = import.meta.env['VITE_APPSYNC_API_URL'] as string;
+const APPSYNC_API_URL = import.meta.env['VITE_APPSYNC_ENDPOINT'] as string;
 const APPSYNC_API_KEY = import.meta.env['VITE_APPSYNC_API_KEY'] as string;
 
 if (!APPSYNC_API_URL || !APPSYNC_API_KEY) {
