@@ -1,0 +1,74 @@
+# Prompt History for Image Sharing Feature
+
+## Original User Request
+> ok, now what we to do is allow a user to 'share' an image with another user. The flow should look something like this:
+> - There is a 'share' button next to the thumbnail of the image.
+> - When the user clicks on the share button, the app brings up a list of tenants (which it can get from the org_service graphql endpoint). Once the tenant is selected, the user list is shown from the list (using the member_service graphql endpoint). The user chooses the user, is asked to confirm, and if they do, a call to the rebac service is made to add the selected user as a 'viewer' on the metadata_item.
+> - Any users the image has been shared with now should show up with a 'unshare' option, which has a confirmation dialog. If the user confirms, the rebac 'viewer' permission is removed.
+
+## Plan Reference
+- Feature: Image Sharing with Two-Step Flow
+- From Plan: ./sdlc-plan.md
+- Architecture: Frontend-only with GraphQL API integrations
+
+## Implementation Details
+
+### Phase 1: Planning
+- Created comprehensive SDLC plan document
+- Clarified requirements with user
+- Documented GraphQL endpoints and ReBAC schema
+- Defined component architecture and dependency order
+
+### Phase 2: Implementation
+
+#### GraphQL Service Clients
+- Created orgServiceClient for tenant queries
+- Created memberServiceClient for member queries
+- Extended appSyncClient with sharing methods:
+  - createViewerRelation(): Grant viewer permission
+  - deleteViewerRelation(): Remove viewer permission
+  - getImageViewers(): Get list of explicit viewers
+  - getResourceRelations(): Get all relations for a resource
+  - isImageOwner(): Check ownership
+- Added TypeScript types in sharing.ts
+
+#### UI Components
+- Button: Reusable with variants and loading states
+- Modal: Accessible with keyboard support
+- Select: Dropdown with label and error handling
+- ConfirmDialog: Confirmation for destructive actions
+- ShareModal: Two-step flow (tenant → user → confirm)
+- SharedUsersList: Display and unshare functionality
+
+#### Integration
+- Updated ImageGallery component:
+  - Added ownership checking
+  - Conditional share button display
+  - Integrated SharedUsersList
+  - Refresh mechanism for share/unshare
+
+#### Tests
+- Unit tests for orgServiceClient
+- Unit tests for memberServiceClient
+- Updated environment configuration
+
+### Phase 3: Review
+- Self-reviewed for:
+  - TypeScript type safety
+  - React best practices (functional components, hooks)
+  - Accessibility (ARIA labels, keyboard navigation)
+  - Error handling and loading states
+  - Code organization and reusability
+
+### Key Design Decisions
+1. Two-step modal flow prevents overwhelming UI
+2. Owner-only permissions checked via ReBAC
+3. Real-time filtering of users with existing access
+4. Reusable UI components follow Tailwind patterns
+5. Comprehensive error handling with user feedback
+
+### Technical Notes
+- ReBAC schema uses union type for viewer (includes owners)
+- Resource format: `image:{imageId}`
+- Target format: `user:{userId}`
+- Environment variables added for org and member services
