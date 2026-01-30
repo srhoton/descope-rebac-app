@@ -39,6 +39,42 @@ const CREATE_RELATIONS_MUTATION = `
 `;
 
 /**
+ * Mutation to delete relations
+ */
+const DELETE_RELATIONS_MUTATION = `
+  mutation DeleteRelations($input: RelationRequest!) {
+    deleteRelations(input: $input)
+  }
+`;
+
+/**
+ * Query to get who can access a resource
+ */
+const WHO_CAN_ACCESS_QUERY = `
+  query WhoCanAccess($namespace: String!, $relationDefinition: String!, $resource: String!) {
+    whoCanAccess(namespace: $namespace, relationDefinition: $relationDefinition, resource: $resource) {
+      targets
+    }
+  }
+`;
+
+/**
+ * Query to get all relations for a resource
+ */
+const GET_RESOURCE_RELATIONS_QUERY = `
+  query GetResourceRelations($resourceId: String!) {
+    getResourceRelations(resourceId: $resourceId) {
+      relations {
+        namespace
+        relationDefinition
+        resource
+        target
+      }
+    }
+  }
+`;
+
+/**
  * AppSync client for interacting with ReBaC service
  */
 export class AppSyncClient {
@@ -143,6 +179,106 @@ export class AppSyncClient {
           rel.resource.startsWith('image:')
       )
       .map((rel) => rel.resource.replace('image:', ''));
+  }
+
+  /**
+   * Creates a viewer relation for an image
+   */
+  async createViewerRelation(
+    imageId: string,
+    targetUserId: string
+  ): Promise<{ message: string }> {
+    const relation: RelationTuple = {
+      namespace: 'metadata_item',
+      relationDefinition: 'viewer',
+      resource: `image:${imageId}`,
+      target: `user:${targetUserId}`,
+    };
+
+    const result = await this.execute<{
+      createRelations: { message: string };
+    }>(CREATE_RELATIONS_MUTATION, {
+      input: {
+        relations: [relation],
+      },
+    });
+
+    return result.createRelations;
+  }
+
+  /**
+   * Deletes a viewer relation for an image
+   */
+  async deleteViewerRelation(
+    imageId: string,
+    targetUserId: string
+  ): Promise<boolean> {
+    const relation: RelationTuple = {
+      namespace: 'metadata_item',
+      relationDefinition: 'viewer',
+      resource: `image:${imageId}`,
+      target: `user:${targetUserId}`,
+    };
+
+    const result = await this.execute<{
+      deleteRelations: boolean;
+    }>(DELETE_RELATIONS_MUTATION, {
+      input: {
+        relations: [relation],
+      },
+    });
+
+    return result.deleteRelations;
+  }
+
+  /**
+   * Gets all users who can view an image (viewers, not owners)
+   */
+  async getImageViewers(imageId: string): Promise<string[]> {
+    const result = await this.execute<{
+      whoCanAccess: { targets: string[] };
+    }>(WHO_CAN_ACCESS_QUERY, {
+      namespace: 'metadata_item',
+      relationDefinition: 'viewer',
+      resource: `image:${imageId}`,
+    });
+
+    // Filter out owner targets - we only want explicit viewers
+    const relations = await this.getResourceRelations(`image:${imageId}`);
+    const ownerTargets = relations.relations
+      .filter((rel) => rel.relationDefinition === 'owner')
+      .map((rel) => rel.target);
+
+    return result.whoCanAccess.targets.filter(
+      (target) => !ownerTargets.includes(target)
+    );
+  }
+
+  /**
+   * Gets all relations for a resource
+   */
+  async getResourceRelations(
+    resourceId: string
+  ): Promise<{ relations: RelationTuple[] }> {
+    const result = await this.execute<{
+      getResourceRelations: { relations: RelationTuple[] };
+    }>(GET_RESOURCE_RELATIONS_QUERY, { resourceId });
+
+    return result.getResourceRelations;
+  }
+
+  /**
+   * Checks if a user is the owner of an image
+   */
+  async isImageOwner(imageId: string, userId: string): Promise<boolean> {
+    const result = await this.getResourceRelations(`image:${imageId}`);
+    const targetId = `user:${userId}`;
+
+    return result.relations.some(
+      (rel) =>
+        rel.relationDefinition === 'owner' &&
+        rel.target === targetId
+    );
   }
 }
 
