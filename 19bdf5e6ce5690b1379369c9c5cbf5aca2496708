@@ -1,0 +1,67 @@
+# Prompt History for IDP Service Terraform Infrastructure
+
+## Original User Request
+> Deploy using S3 and CloudFront
+> Use Terraform for deployment (like the rest of the project)
+> DNS: descope-idp.sb.fullbay.com
+> Create ACM certificate (no wildcard needed)
+
+## User Clarifications
+- Route53: Terraform will look up hosted zone ID by domain name (sb.fullbay.com)
+- Don't hardcode zone IDs
+
+## Plan Reference
+- Component: Terraform Infrastructure (S3 + CloudFront + ACM + Route53)
+- From Plan: ./sdlc-plan-idp.md
+
+## Implementation Summary
+Created complete AWS infrastructure with:
+- S3 bucket with versioning and lifecycle policies
+- CloudFront distribution with Origin Access Control (OAC)
+- ACM certificate in us-east-1 with DNS validation
+- Route53 A and AAAA records
+- Security headers policy
+- SPA routing support
+- Deployment documentation
+
+## Files Created
+- terraform/idp_acm.tf: ACM certificate with DNS validation (us-east-1 provider)
+- terraform/idp_service.tf: S3, CloudFront, Route53 resources
+- terraform/variables.tf: Added idp_domain_name variable
+- terraform/outputs.tf: Added IDP service outputs
+- terraform/IDP_DEPLOYMENT.md: Comprehensive deployment guide
+
+## Infrastructure Features
+Security:
+- S3 public access blocked (CloudFront OAC access only)
+- HTTPS-only with TLS 1.2+
+- Security headers (HSTS, X-Frame-Options, CSP, etc.)
+- Automated certificate validation via Route53
+
+Reliability:
+- S3 versioning for rollback capability
+- Lifecycle policies to manage old versions
+- IPv6 support via AAAA record
+- CloudWatch logging
+
+Performance:
+- CloudFront CDN with global distribution
+- Cache optimization with appropriate TTLs
+- Compression enabled
+- Manual chunk splitting in Vite
+
+## Configuration
+- Environment: sandbox
+- Region: us-west-2 (main resources)
+- ACM Region: us-east-1 (required for CloudFront)
+- Domain: descope-idp.sb.fullbay.com
+- Route53 zone looked up by name: sb.fullbay.com
+
+## Deployment Process
+Documented in IDP_DEPLOYMENT.md:
+1. Build React application
+2. Initialize Terraform
+3. Apply infrastructure (~20-30 minutes including CloudFront)
+4. Upload files to S3
+5. Invalidate CloudFront cache
+6. Verify deployment
