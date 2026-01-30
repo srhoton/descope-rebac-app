@@ -20,12 +20,21 @@ import com.fullbay.memberservice.model.MemberRequest;
 import com.fullbay.memberservice.model.PaginatedResponse;
 import com.fullbay.memberservice.service.MemberService;
 
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+
 import io.quarkus.logging.Log;
 
 /** REST resource for managing Descope members within tenants. */
 @Path("/tenants/{tenantId}/members")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Tag(name = "Members", description = "Operations for managing Descope members within tenants")
 public class MemberResource {
 
   @Inject MemberService memberService;
@@ -38,7 +47,23 @@ public class MemberResource {
    * @return HTTP 201 with the created member or HTTP 500 on error
    */
   @POST
-  public Response createMember(@PathParam("tenantId") String tenantId, MemberRequest request) {
+  @Operation(
+      summary = "Create a new member",
+      description = "Creates a new member in the specified tenant")
+  @APIResponses({
+    @APIResponse(
+        responseCode = "201",
+        description = "Member created successfully",
+        content = @Content(schema = @Schema(implementation = Member.class))),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  public Response createMember(
+      @Parameter(description = "Tenant unique identifier", required = true) @PathParam("tenantId")
+          String tenantId,
+      MemberRequest request) {
     try {
       Member member = memberService.createMember(tenantId, request);
       return Response.status(Response.Status.CREATED).entity(member).build();
@@ -59,8 +84,28 @@ public class MemberResource {
    */
   @GET
   @Path("/{loginId}")
+  @Operation(
+      summary = "Get member by login ID",
+      description = "Retrieves a member by their login ID from the specified tenant")
+  @APIResponses({
+    @APIResponse(
+        responseCode = "200",
+        description = "Member found",
+        content = @Content(schema = @Schema(implementation = Member.class))),
+    @APIResponse(
+        responseCode = "404",
+        description = "Member not found",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   public Response getMember(
-      @PathParam("tenantId") String tenantId, @PathParam("loginId") String loginId) {
+      @Parameter(description = "Tenant unique identifier", required = true) @PathParam("tenantId")
+          String tenantId,
+      @Parameter(description = "Member login ID", required = true) @PathParam("loginId")
+          String loginId) {
     try {
       Member member = memberService.getMember(tenantId, loginId);
       return Response.ok(member).build();
@@ -87,10 +132,30 @@ public class MemberResource {
    * @return HTTP 200 with paginated members or HTTP 500 on error
    */
   @GET
+  @Operation(
+      summary = "List all members",
+      description = "Retrieves all members in the specified tenant with pagination support")
+  @APIResponses({
+    @APIResponse(
+        responseCode = "200",
+        description = "Members retrieved successfully",
+        content = @Content(schema = @Schema(implementation = PaginatedResponse.class))),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   public Response getAllMembers(
-      @PathParam("tenantId") String tenantId,
-      @QueryParam("page") @DefaultValue("0") int page,
-      @QueryParam("pageSize") @DefaultValue("20") int pageSize) {
+      @Parameter(description = "Tenant unique identifier", required = true) @PathParam("tenantId")
+          String tenantId,
+      @Parameter(description = "Page number (0-indexed)", example = "0")
+          @QueryParam("page")
+          @DefaultValue("0")
+          int page,
+      @Parameter(description = "Number of items per page", example = "20")
+          @QueryParam("pageSize")
+          @DefaultValue("20")
+          int pageSize) {
     try {
       PaginatedResponse<Member> response = memberService.getAllMembers(tenantId, page, pageSize);
       return Response.ok(response).build();
@@ -112,9 +177,24 @@ public class MemberResource {
    */
   @PUT
   @Path("/{loginId}")
+  @Operation(
+      summary = "Update member",
+      description = "Updates an existing member's information in the specified tenant")
+  @APIResponses({
+    @APIResponse(
+        responseCode = "200",
+        description = "Member updated successfully",
+        content = @Content(schema = @Schema(implementation = Member.class))),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   public Response updateMember(
-      @PathParam("tenantId") String tenantId,
-      @PathParam("loginId") String loginId,
+      @Parameter(description = "Tenant unique identifier", required = true) @PathParam("tenantId")
+          String tenantId,
+      @Parameter(description = "Member login ID", required = true) @PathParam("loginId")
+          String loginId,
       MemberRequest request) {
     try {
       Member member = memberService.updateMember(tenantId, loginId, request);
@@ -137,8 +217,21 @@ public class MemberResource {
    */
   @DELETE
   @Path("/{loginId}")
+  @Operation(
+      summary = "Delete member",
+      description = "Deletes a member from the specified tenant by their login ID")
+  @APIResponses({
+    @APIResponse(responseCode = "204", description = "Member deleted successfully"),
+    @APIResponse(
+        responseCode = "500",
+        description = "Internal server error",
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   public Response deleteMember(
-      @PathParam("tenantId") String tenantId, @PathParam("loginId") String loginId) {
+      @Parameter(description = "Tenant unique identifier", required = true) @PathParam("tenantId")
+          String tenantId,
+      @Parameter(description = "Member login ID", required = true) @PathParam("loginId")
+          String loginId) {
     try {
       memberService.deleteMember(tenantId, loginId);
       return Response.noContent().build();
@@ -152,8 +245,12 @@ public class MemberResource {
   }
 
   /** Error response model for API errors. */
+  @Schema(description = "Error response information")
   public static class ErrorResponse {
+    @Schema(description = "Error type", example = "Failed to create member")
     public String error;
+
+    @Schema(description = "Detailed error message", example = "Member email cannot be empty")
     public String message;
 
     public ErrorResponse(String error, String message) {

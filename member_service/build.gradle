@@ -17,6 +17,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-amazon-lambda-rest'
     implementation 'io.quarkus:quarkus-logging-json'
     implementation 'io.quarkus:quarkus-smallrye-health'
+    implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation 'com.descope:java-sdk:1.0.60'
 
     testImplementation 'io.quarkus:quarkus-junit5'
