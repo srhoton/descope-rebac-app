@@ -10,22 +10,21 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.descope.exception.ServerCommonException;
+import java.util.Arrays;
+import java.util.Collections;
 
+import com.descope.exception.ServerCommonException;
 import com.fullbay.orgservice.model.PaginatedResponse;
 import com.fullbay.orgservice.model.Tenant;
 import com.fullbay.orgservice.model.TenantRequest;
 import com.fullbay.orgservice.service.TenantService;
 
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
-import io.restassured.http.ContentType;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.http.ContentType;
 
 @QuarkusTest
 class TenantResourceTest {
@@ -127,8 +126,7 @@ class TenantResourceTest {
   @DisplayName("GET /tenants - with pagination params - should use provided params")
   void getAllTenants_withPaginationParams_shouldUseParams() throws Exception {
     // Arrange
-    PaginatedResponse<Tenant> response =
-        new PaginatedResponse<>(Collections.emptyList(), 2, 10, 0);
+    PaginatedResponse<Tenant> response = new PaginatedResponse<>(Collections.emptyList(), 2, 10, 0);
 
     when(tenantService.getAllTenants(2, 10)).thenReturn(response);
 

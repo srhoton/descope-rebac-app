@@ -2,9 +2,7 @@ package com.fullbay.orgservice.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- * Represents a Descope tenant with basic information.
- */
+/** Represents a Descope tenant with basic information. */
 public class Tenant {
 
   @JsonProperty("id")

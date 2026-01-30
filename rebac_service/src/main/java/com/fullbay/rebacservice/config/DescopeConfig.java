@@ -1,4 +1,4 @@
-package com.fullbay.orgservice.config;
+package com.fullbay.rebacservice.config;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;

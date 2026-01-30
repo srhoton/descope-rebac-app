@@ -2,7 +2,6 @@ package com.fullbay.orgservice.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -10,27 +9,26 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import jakarta.inject.Inject;
+
 import com.descope.client.DescopeClient;
 import com.descope.exception.ServerCommonException;
 import com.descope.model.mgmt.ManagementServices;
 import com.descope.model.tenant.Tenant;
 import com.descope.sdk.mgmt.TenantService;
-
 import com.fullbay.orgservice.model.PaginatedResponse;
 import com.fullbay.orgservice.model.TenantRequest;
-
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
-
-import jakarta.inject.Inject;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTest
 class TenantServiceTest {

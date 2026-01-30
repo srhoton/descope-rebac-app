@@ -16,6 +16,10 @@ resource "aws_lb_target_group" "lambda" {
   tags = {
     Name = "${var.service_name}-lambda-tg"
   }
+
+  lifecycle {
+    ignore_changes = [health_check[0].protocol, health_check[0].port]
+  }
 }
 
 # Attach Lambda to target group
@@ -28,7 +32,7 @@ resource "aws_lb_target_group_attachment" "lambda" {
 # ALB listener rule to route traffic to Lambda
 resource "aws_lb_listener_rule" "lambda" {
   listener_arn = data.aws_lb_listener.https.arn
-  priority     = 100
+  priority     = 250
 
   action {
     type             = "forward"

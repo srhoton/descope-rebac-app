@@ -2,9 +2,7 @@ package com.fullbay.orgservice.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- * Request object for creating or updating a tenant.
- */
+/** Request object for creating or updating a tenant. */
 public class TenantRequest {
 
   @JsonProperty("name")

@@ -1,25 +1,22 @@
 package com.fullbay.orgservice.service;
 
-import com.descope.client.DescopeClient;
-import com.descope.exception.DescopeException;
-import com.descope.model.tenant.Tenant;
-
-import com.fullbay.orgservice.model.PaginatedResponse;
-import com.fullbay.orgservice.model.TenantRequest;
-
-import io.quarkus.logging.Log;
-
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Service class for managing Descope tenants.
- */
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
+import com.descope.client.DescopeClient;
+import com.descope.exception.DescopeException;
+import com.descope.model.tenant.Tenant;
+import com.fullbay.orgservice.model.PaginatedResponse;
+import com.fullbay.orgservice.model.TenantRequest;
+
+import io.quarkus.logging.Log;
+
+/** Service class for managing Descope tenants. */
 @ApplicationScoped
 public class TenantService {
 
@@ -57,8 +54,7 @@ public class TenantService {
   public com.fullbay.orgservice.model.Tenant getTenant(String tenantId) throws DescopeException {
     Log.infof("Retrieving tenant with ID: %s", tenantId);
 
-    Tenant descopeTenant =
-        descopeClient.getManagementServices().getTenantService().load(tenantId);
+    Tenant descopeTenant = descopeClient.getManagementServices().getTenantService().load(tenantId);
 
     return new com.fullbay.orgservice.model.Tenant(descopeTenant.getId(), descopeTenant.getName());
   }

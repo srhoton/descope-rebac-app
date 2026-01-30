@@ -1,14 +1,5 @@
 package com.fullbay.orgservice;
 
-import com.descope.exception.DescopeException;
-
-import com.fullbay.orgservice.model.PaginatedResponse;
-import com.fullbay.orgservice.model.Tenant;
-import com.fullbay.orgservice.model.TenantRequest;
-import com.fullbay.orgservice.service.TenantService;
-
-import io.quarkus.logging.Log;
-
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -23,9 +14,15 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-/**
- * REST resource for managing Descope tenants.
- */
+import com.descope.exception.DescopeException;
+import com.fullbay.orgservice.model.PaginatedResponse;
+import com.fullbay.orgservice.model.Tenant;
+import com.fullbay.orgservice.model.TenantRequest;
+import com.fullbay.orgservice.service.TenantService;
+
+import io.quarkus.logging.Log;
+
+/** REST resource for managing Descope tenants. */
 @Path("/tenants")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -140,9 +137,7 @@ public class TenantResource {
     }
   }
 
-  /**
-   * Error response model for API errors.
-   */
+  /** Error response model for API errors. */
   public static class ErrorResponse {
     public String error;
     public String message;

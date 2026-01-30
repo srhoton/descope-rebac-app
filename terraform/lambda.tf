@@ -17,20 +17,14 @@ resource "aws_security_group" "lambda" {
   }
 }
 
-# Package Lambda function code
-data "archive_file" "lambda" {
-  type        = "zip"
-  source_dir  = "${path.module}/../org_service/build/quarkus-app"
-  output_path = "${path.module}/function.zip"
-}
-
+# Use the pre-built function.zip from Quarkus
 # Lambda function
 resource "aws_lambda_function" "org_service" {
-  filename         = data.archive_file.lambda.output_path
+  filename         = "${path.module}/../org_service/build/function.zip"
   function_name    = var.service_name
   role             = aws_iam_role.lambda.arn
   handler          = "io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest"
-  source_code_hash = data.archive_file.lambda.output_base64sha256
+  source_code_hash = filebase64sha256("${path.module}/../org_service/build/function.zip")
   runtime          = "java21"
   memory_size      = var.lambda_memory_size
   timeout          = var.lambda_timeout
@@ -76,11 +70,12 @@ resource "aws_lambda_alias" "org_service" {
   function_version = aws_lambda_function.org_service.version
 }
 
-# Permission for ALB to invoke Lambda
+# Permission for ALB to invoke Lambda alias
 resource "aws_lambda_permission" "alb" {
   statement_id  = "AllowExecutionFromALB"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.org_service.function_name
+  qualifier     = aws_lambda_alias.org_service.name
   principal     = "elasticloadbalancing.amazonaws.com"
   source_arn    = aws_lb_target_group.lambda.arn
 }
