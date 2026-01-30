@@ -37,16 +37,18 @@ export function useDescope(): UseDescopeResult {
     }
   }, []);
 
+  const userProfile = user
+    ? {
+        userId: user.userId,
+        ...(user.email !== undefined && { email: user.email }),
+        ...(user.name !== undefined && { name: user.name }),
+      }
+    : null;
+
   return {
     isAuthenticated,
     isLoading: isUserLoading,
-    user: user
-      ? {
-          userId: user.userId,
-          email: user.email,
-          name: user.name,
-        }
-      : null,
+    user: userProfile,
     logout,
   };
 }

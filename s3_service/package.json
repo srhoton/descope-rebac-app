@@ -14,8 +14,8 @@
     "format": "prettier --write \"src/**/*.{ts,tsx}\""
   },
   "dependencies": {
-    "@descope/react-sdk": "^1.10.0",
-    "@descope/web-component": "^3.20.0",
+    "@descope/react-sdk": "^2.26.0",
+    "@descope/web-component": "^3.55.0",
     "aws-amplify": "^6.3.0",
     "clsx": "^2.1.1",
     "react": "^18.3.1",

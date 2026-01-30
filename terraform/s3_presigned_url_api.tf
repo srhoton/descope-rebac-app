@@ -76,7 +76,6 @@ resource "aws_lambda_function" "generate_upload_url" {
   environment {
     variables = {
       S3_BUCKET_NAME = aws_s3_bucket.images.id
-      AWS_REGION     = var.aws_region
     }
   }
 
@@ -104,7 +103,6 @@ resource "aws_lambda_function" "generate_download_url" {
   environment {
     variables = {
       S3_BUCKET_NAME = aws_s3_bucket.images.id
-      AWS_REGION     = var.aws_region
     }
   }
 

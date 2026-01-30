@@ -1,18 +1,6 @@
 # ACM Certificate for CloudFront (must be in us-east-1)
 # This certificate is used by CloudFront for the custom domain
-
-provider "aws" {
-  alias  = "us_east_1"
-  region = "us-east-1"
-
-  default_tags {
-    tags = {
-      Project     = "Descope ReBac"
-      Environment = var.environment
-      ManagedBy   = "Terraform"
-    }
-  }
-}
+# Note: The aws.us_east_1 provider is defined in versions.tf
 
 # Data source to look up Route53 hosted zone
 data "aws_route53_zone" "sb_fullbay" {
