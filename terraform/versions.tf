@@ -24,3 +24,17 @@ provider "aws" {
     }
   }
 }
+
+# Provider for us-east-1 region (required for CloudFront ACM certificates)
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+
+  default_tags {
+    tags = {
+      Project     = "Descope ReBac"
+      Environment = var.environment
+      ManagedBy   = "Terraform"
+    }
+  }
+}

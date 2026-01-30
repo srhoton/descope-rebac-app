@@ -76,3 +76,10 @@ variable "idp_domain_name" {
   type        = string
   default     = "descope-idp.sb.fullbay.com"
 }
+
+# S3 Service Variables
+variable "s3_service_domain_name" {
+  description = "Domain name for the S3 service"
+  type        = string
+  default     = "descope-s3.sb.fullbay.com"
+}
