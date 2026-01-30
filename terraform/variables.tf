@@ -69,3 +69,10 @@ variable "health_check_path" {
   type        = string
   default     = "/q/health"
 }
+
+# IDP Service Variables
+variable "idp_domain_name" {
+  description = "Domain name for the IDP service"
+  type        = string
+  default     = "descope-idp.sb.fullbay.com"
+}

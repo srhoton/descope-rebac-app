@@ -1,0 +1,48 @@
+# Organization Service GraphQL Schema
+# Maps to REST API endpoints at /tenants
+
+type Tenant {
+  id: ID!
+  name: String!
+}
+
+input TenantInput {
+  name: String!
+}
+
+type PaginatedTenants {
+  items: [Tenant!]!
+  page: Int!
+  pageSize: Int!
+  totalItems: Int!
+  totalPages: Int!
+}
+
+type ErrorDetail {
+  error: String!
+  message: String!
+}
+
+type Query {
+  # GET /tenants
+  listTenants(page: Int = 0, pageSize: Int = 20): PaginatedTenants!
+
+  # GET /tenants/{tenantId}
+  getTenant(tenantId: ID!): Tenant
+}
+
+type Mutation {
+  # POST /tenants
+  createTenant(input: TenantInput!): Tenant!
+
+  # PUT /tenants/{tenantId}
+  updateTenant(tenantId: ID!, input: TenantInput!): Tenant!
+
+  # DELETE /tenants/{tenantId}
+  deleteTenant(tenantId: ID!): Boolean!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}
