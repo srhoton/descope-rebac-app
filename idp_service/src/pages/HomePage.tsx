@@ -1,24 +1,66 @@
-import React, { useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Descope, useSession } from '@descope/react-sdk';
+
+/**
+ * Validates that a return URL is safe to redirect to
+ * Only allows URLs from trusted domains
+ */
+function isValidReturnUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    // Allow redirects to sb.fullbay.com subdomains and localhost for development
+    const allowedHosts = [
+      'descope-s3.sb.fullbay.com',
+      'descope-idp.sb.fullbay.com',
+      'localhost',
+    ];
+    return allowedHosts.some(host =>
+      parsed.hostname === host || parsed.hostname.endsWith(`.${host}`)
+    );
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Home page component - landing page with embedded login flow
  */
 function HomePage(): React.ReactElement {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAuthenticated, isSessionLoading } = useSession();
 
-  // Redirect to profile if already authenticated
-  useEffect(() => {
-    if (isAuthenticated && !isSessionLoading) {
+  // Get and validate return URL from query params
+  const returnUrl = useMemo(() => {
+    const url = searchParams.get('returnUrl');
+    if (url && isValidReturnUrl(url)) {
+      return url;
+    }
+    return null;
+  }, [searchParams]);
+
+  // Redirect after authentication
+  const redirectAfterAuth = useCallback(() => {
+    if (returnUrl) {
+      // Redirect to external service
+      window.location.href = returnUrl;
+    } else {
+      // Stay on IDP service profile page
       navigate('/profile', { replace: true });
     }
-  }, [isAuthenticated, isSessionLoading, navigate]);
+  }, [returnUrl, navigate]);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isSessionLoading) {
+      redirectAfterAuth();
+    }
+  }, [isAuthenticated, isSessionLoading, redirectAfterAuth]);
 
   const handleSuccess = useCallback(() => {
-    navigate('/profile', { replace: true });
-  }, [navigate]);
+    redirectAfterAuth();
+  }, [redirectAfterAuth]);
 
   const handleError = useCallback((error: CustomEvent) => {
     console.error('Authentication error:', error.detail);
