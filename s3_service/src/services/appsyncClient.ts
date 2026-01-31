@@ -168,17 +168,60 @@ export class AppSyncClient {
   }
 
   /**
-   * Filters relations to get only image resources owned by the user
+   * Filters relations to get only image resources the user can access (owner or viewer)
    */
   filterImageRelations(relations: RelationTuple[]): string[] {
     return relations
       .filter(
         (rel) =>
           rel.namespace === 'metadata_item' &&
-          rel.relationDefinition === 'owner' &&
+          (rel.relationDefinition === 'owner' || rel.relationDefinition === 'viewer') &&
           rel.resource.startsWith('image:')
       )
       .map((rel) => rel.resource.replace('image:', ''));
+  }
+
+  /**
+   * Gets image access info including owner userId for each image
+   * Returns a map of imageId -> ownerUserId
+   */
+  async getImageAccessInfo(
+    userId: string,
+    relations: RelationTuple[]
+  ): Promise<Map<string, string>> {
+    const imageOwnerMap = new Map<string, string>();
+
+    const imageRelations = relations.filter(
+      (rel) =>
+        rel.namespace === 'metadata_item' &&
+        (rel.relationDefinition === 'owner' || rel.relationDefinition === 'viewer') &&
+        rel.resource.startsWith('image:')
+    );
+
+    for (const rel of imageRelations) {
+      const imageId = rel.resource.replace('image:', '');
+
+      if (rel.relationDefinition === 'owner') {
+        // User owns this image, use their userId
+        imageOwnerMap.set(imageId, userId);
+      } else {
+        // User is a viewer, need to find the owner
+        try {
+          const resourceRelations = await this.getResourceRelations(rel.resource);
+          const ownerRelation = resourceRelations.relations.find(
+            (r) => r.relationDefinition === 'owner'
+          );
+          if (ownerRelation) {
+            const ownerId = ownerRelation.target.replace('user:', '');
+            imageOwnerMap.set(imageId, ownerId);
+          }
+        } catch (error) {
+          console.error(`Failed to get owner for image ${imageId}:`, error);
+        }
+      }
+    }
+
+    return imageOwnerMap;
   }
 
   /**

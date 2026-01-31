@@ -4,7 +4,7 @@ React-based web application for secure image uploads to AWS S3 with Descope auth
 
 ## Features
 
-- Descope authentication with redirect flow
+- Descope authentication with embedded login flow
 - Secure image upload to S3 using presigned URLs
 - Image gallery displaying user's uploaded images
 - ReBaC-based access control for images
@@ -18,9 +18,9 @@ React-based web application for secure image uploads to AWS S3 with Descope auth
 ### Authentication Flow
 
 1. User visits the S3 service (descope-s3.sb.fullbay.com)
-2. If not authenticated, redirected to IDP service (descope-idp.sb.fullbay.com)
-3. After login at IDP service, redirected back to S3 service
-4. User can now upload and view images
+2. If not authenticated, shown internal login page at /login
+3. After login via Descope flow, user can upload and view images
+4. Session managed by Descope SDK with cookie-based authentication
 
 ### Upload Flow
 
@@ -58,7 +58,8 @@ s3_service/
 │   │   ├── ImageGallery.tsx
 │   │   └── ProtectedRoute.tsx
 │   ├── pages/              # Page-level components
-│   │   └── ImageUploadPage.tsx
+│   │   ├── ImageUploadPage.tsx
+│   │   └── LoginPage.tsx
 │   ├── hooks/              # Custom React hooks
 │   │   └── useDescope.ts
 │   ├── services/           # API and service integrations
@@ -91,9 +92,6 @@ VITE_DESCOPE_PROJECT_ID=your_descope_project_id
 VITE_API_BASE_URL=https://api.example.com/v1
 VITE_APPSYNC_API_URL=https://your-appsync-api.appsync-api.us-west-2.amazonaws.com/graphql
 VITE_APPSYNC_API_KEY=your_appsync_api_key
-
-# IDP Service Domain
-VITE_IDP_DOMAIN=descope-idp.sb.fullbay.com
 ```
 
 ## Development
@@ -188,9 +186,9 @@ Route wrapper that enforces authentication.
 - `children: ReactNode` - Protected content
 
 **Features:**
-- Redirects to IDP service if not authenticated
+- Redirects to internal /login page if not authenticated
 - Handles loading states
-- Returns to original URL after login
+- Shows loading spinner during session check
 
 ## Services
 
@@ -248,7 +246,6 @@ The application is deployed as a static site to S3 and served via CloudFront.
 
 The API endpoints must have CORS enabled for:
 - `https://descope-s3.sb.fullbay.com`
-- `https://descope-idp.sb.fullbay.com`
 
 ## Security
 
@@ -261,12 +258,6 @@ The API endpoints must have CORS enabled for:
 - ReBaC enforces access control
 
 ## Integration Points
-
-### With IDP Service
-
-- Redirects to IDP service for authentication
-- Returns to S3 service after login with session token
-- Shares Descope session across domains
 
 ### With ReBaC Service
 
@@ -285,8 +276,9 @@ The API endpoints must have CORS enabled for:
 ### "User not authenticated" error
 
 - Ensure Descope project ID is correctly configured
-- Check that IDP service is accessible
+- Check that Descope authentication flow is accessible
 - Verify session cookie is being set correctly
+- Try clearing browser storage and logging in again
 
 ### Images not appearing in gallery
 

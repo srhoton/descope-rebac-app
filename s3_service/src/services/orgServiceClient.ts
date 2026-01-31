@@ -4,12 +4,8 @@
 
 import type { PaginatedTenants } from '../types/sharing';
 
-const APPSYNC_ORG_URL = import.meta.env['VITE_APPSYNC_ORG_ENDPOINT'] as string;
-const APPSYNC_ORG_KEY = import.meta.env['VITE_APPSYNC_ORG_API_KEY'] as string;
-
-if (!APPSYNC_ORG_URL || !APPSYNC_ORG_KEY) {
-  throw new Error('Org Service AppSync configuration is missing from environment variables');
-}
+const APPSYNC_ORG_URL = import.meta.env['VITE_APPSYNC_ORG_ENDPOINT'] as string | undefined;
+const APPSYNC_ORG_KEY = import.meta.env['VITE_APPSYNC_ORG_API_KEY'] as string | undefined;
 
 /**
  * Query to list all tenants
@@ -33,12 +29,25 @@ const LIST_TENANTS_QUERY = `
  * Client for interacting with the Organization Service AppSync API
  */
 export class OrgServiceClient {
-  private readonly apiUrl: string;
-  private readonly apiKey: string;
+  private readonly apiUrl: string | undefined;
+  private readonly apiKey: string | undefined;
 
   constructor(apiUrl = APPSYNC_ORG_URL, apiKey = APPSYNC_ORG_KEY) {
     this.apiUrl = apiUrl;
     this.apiKey = apiKey;
+  }
+
+  /**
+   * Validates that configuration is present
+   */
+  private validateConfig(): { apiUrl: string; apiKey: string } {
+    if (!this.apiUrl || !this.apiKey) {
+      throw new Error(
+        'Org Service AppSync configuration is missing. ' +
+        'Set VITE_APPSYNC_ORG_ENDPOINT and VITE_APPSYNC_ORG_API_KEY environment variables to enable sharing.'
+      );
+    }
+    return { apiUrl: this.apiUrl, apiKey: this.apiKey };
   }
 
   /**
@@ -48,11 +57,13 @@ export class OrgServiceClient {
     query: string,
     variables: Record<string, unknown>
   ): Promise<T> {
-    const response = await fetch(this.apiUrl, {
+    const { apiUrl, apiKey } = this.validateConfig();
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
+        'x-api-key': apiKey,
       },
       body: JSON.stringify({
         query,
@@ -81,6 +92,13 @@ export class OrgServiceClient {
     }
 
     return result.data;
+  }
+
+  /**
+   * Checks if the org service is configured
+   */
+  isConfigured(): boolean {
+    return Boolean(this.apiUrl && this.apiKey);
   }
 
   /**

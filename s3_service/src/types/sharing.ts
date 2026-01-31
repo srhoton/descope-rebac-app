@@ -51,3 +51,12 @@ export interface SharedUser {
   email: string;
   name?: string;
 }
+
+/**
+ * Basic user information returned by getUserById
+ */
+export interface UserInfo {
+  userId: string;
+  name?: string;
+  email: string;
+}

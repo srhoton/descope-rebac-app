@@ -1,8 +1,9 @@
 /**
- * Protected route component that redirects to IDP service if not authenticated
+ * Protected route component that redirects to login page if not authenticated
  */
 
-import { useEffect, useRef, type FC, type ReactNode } from 'react';
+import { useEffect, type FC, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSession } from '@descope/react-sdk';
 
 interface ProtectedRouteProps {
@@ -11,32 +12,21 @@ interface ProtectedRouteProps {
 
 /**
  * Wraps routes that require authentication
- * Redirects to IDP service login if user is not authenticated
- * Session is shared via cookies across subdomains
+ * Redirects to internal /login page if user is not authenticated
  */
 export const ProtectedRoute: FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isSessionLoading } = useSession();
-  const hasRedirected = useRef(false);
+  const navigate = useNavigate();
 
   console.log('[ProtectedRoute] Render:', { isAuthenticated, isSessionLoading });
 
   useEffect(() => {
-    // Only redirect if we're done loading AND not authenticated AND haven't already redirected
-    if (!isSessionLoading && !isAuthenticated && !hasRedirected.current) {
-      console.log('[ProtectedRoute] Not authenticated, redirecting to IDP');
-      hasRedirected.current = true;
-
-      // Redirect to IDP service login with return URL
-      const idpDomain = import.meta.env['VITE_IDP_DOMAIN'] as string;
-      const currentUrl = window.location.href;
-
-      if (idpDomain) {
-        window.location.href = `https://${idpDomain}/?returnUrl=${encodeURIComponent(currentUrl)}`;
-      } else {
-        console.error('IDP_DOMAIN not configured');
-      }
+    // Only redirect if we're done loading AND not authenticated
+    if (!isSessionLoading && !isAuthenticated) {
+      console.log('[ProtectedRoute] Not authenticated, redirecting to /login');
+      navigate('/login', { replace: true });
     }
-  }, [isAuthenticated, isSessionLoading]);
+  }, [isAuthenticated, isSessionLoading, navigate]);
 
   if (isSessionLoading) {
     return (

@@ -96,23 +96,24 @@ export class ImageService {
   }
 
   /**
-   * Gets all images owned by a user
+   * Gets all images accessible by a user (owned or shared with them)
    */
   async getUserImages(userId: string): Promise<Image[]> {
     try {
       // Get all relations for the user from ReBaC
       const { relations } = await appSyncClient.getTargetAccess(userId);
 
-      // Filter to get only image resources
-      const imageIds = appSyncClient.filterImageRelations(relations);
+      // Get image access info including owner userIds
+      const imageOwnerMap = await appSyncClient.getImageAccessInfo(userId, relations);
 
-      // Generate download URLs for each image
+      // Generate download URLs for each image using the owner's userId
       const images = await Promise.all(
-        imageIds.map(async (imageId) => {
+        Array.from(imageOwnerMap.entries()).map(async ([imageId, ownerId]) => {
           try {
+            // Use the owner's userId to construct the correct S3 path
             const downloadUrlData = await this.generateDownloadUrl(
               imageId,
-              userId
+              ownerId
             );
 
             // Extract filename from S3 key
@@ -123,7 +124,7 @@ export class ImageService {
               s3Key: downloadUrlData.s3Key,
               filename,
               contentType: 'image/jpeg', // Default, would need metadata API to get actual type
-              userId,
+              userId: ownerId, // Store the owner's userId
               uploadedAt: new Date().toISOString(), // Would need metadata API for actual date
               downloadUrl: downloadUrlData.downloadUrl,
             };

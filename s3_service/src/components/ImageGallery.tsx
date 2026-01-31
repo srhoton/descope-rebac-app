@@ -7,6 +7,7 @@ import type { Image } from '../types/image';
 import type { SharedUser } from '../types/sharing';
 import { imageService } from '../services/imageService';
 import { appSyncClient } from '../services/appsyncClient';
+import { memberServiceClient } from '../services/memberServiceClient';
 import { useDescope } from '../hooks/useDescope';
 import { Button } from './ui/Button';
 import { ShareModal } from './ShareModal';
@@ -60,14 +61,26 @@ export const ImageGallery: FC<ImageGalleryProps> = ({ refreshTrigger }) => {
           userImages.map(async (image) => {
             if (ownerMap[image.imageId]) {
               const viewers = await appSyncClient.getImageViewers(image.imageId);
-              // Extract user ID from "user:{userId}" format
-              const users: SharedUser[] = viewers.map((target) => {
-                const userId = target.replace('user:', '');
-                return {
-                  userId,
-                  email: userId, // Use userId as email placeholder - in real app would fetch from user service
-                };
-              });
+              // Extract user ID from "user:{userId}" format and lookup user info
+              const users: SharedUser[] = await Promise.all(
+                viewers.map(async (target) => {
+                  const userId = target.replace('user:', '');
+                  try {
+                    const userInfo = await memberServiceClient.getUserById(userId);
+                    const sharedUser: SharedUser = {
+                      userId,
+                      email: userInfo?.email ?? userId,
+                    };
+                    if (userInfo?.name) {
+                      sharedUser.name = userInfo.name;
+                    }
+                    return sharedUser;
+                  } catch {
+                    // Fall back to userId if lookup fails
+                    return { userId, email: userId };
+                  }
+                })
+              );
               return { imageId: image.imageId, users };
             }
             return { imageId: image.imageId, users: [] };
@@ -108,13 +121,26 @@ export const ImageGallery: FC<ImageGalleryProps> = ({ refreshTrigger }) => {
         images.map(async (image) => {
           if (ownershipMap[image.imageId]) {
             const viewers = await appSyncClient.getImageViewers(image.imageId);
-            const users: SharedUser[] = viewers.map((target) => {
-              const userId = target.replace('user:', '');
-              return {
-                userId,
-                email: userId,
-              };
-            });
+            // Lookup user info for each viewer
+            const users: SharedUser[] = await Promise.all(
+              viewers.map(async (target) => {
+                const userId = target.replace('user:', '');
+                try {
+                  const userInfo = await memberServiceClient.getUserById(userId);
+                  const sharedUser: SharedUser = {
+                    userId,
+                    email: userInfo?.email ?? userId,
+                  };
+                  if (userInfo?.name) {
+                    sharedUser.name = userInfo.name;
+                  }
+                  return sharedUser;
+                } catch {
+                  // Fall back to userId if lookup fails
+                  return { userId, email: userId };
+                }
+              })
+            );
             return { imageId: image.imageId, users };
           }
           return { imageId: image.imageId, users: [] };

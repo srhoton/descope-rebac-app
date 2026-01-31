@@ -2,14 +2,10 @@
  * GraphQL client for Member Service AppSync API
  */
 
-import type { PaginatedMembers } from '../types/sharing';
+import type { PaginatedMembers, UserInfo } from '../types/sharing';
 
-const APPSYNC_MEMBER_URL = import.meta.env['VITE_APPSYNC_MEMBER_ENDPOINT'] as string;
-const APPSYNC_MEMBER_KEY = import.meta.env['VITE_APPSYNC_MEMBER_API_KEY'] as string;
-
-if (!APPSYNC_MEMBER_URL || !APPSYNC_MEMBER_KEY) {
-  throw new Error('Member Service AppSync configuration is missing from environment variables');
-}
+const APPSYNC_MEMBER_URL = import.meta.env['VITE_APPSYNC_MEMBER_ENDPOINT'] as string | undefined;
+const APPSYNC_MEMBER_KEY = import.meta.env['VITE_APPSYNC_MEMBER_API_KEY'] as string | undefined;
 
 /**
  * Query to list members in a tenant
@@ -33,15 +29,41 @@ const LIST_MEMBERS_QUERY = `
 `;
 
 /**
+ * Query to get user by Descope userId
+ */
+const GET_USER_BY_ID_QUERY = `
+  query GetUserById($userId: String!) {
+    getUserById(userId: $userId) {
+      userId
+      name
+      email
+    }
+  }
+`;
+
+/**
  * Client for interacting with the Member Service AppSync API
  */
 export class MemberServiceClient {
-  private readonly apiUrl: string;
-  private readonly apiKey: string;
+  private readonly apiUrl: string | undefined;
+  private readonly apiKey: string | undefined;
 
   constructor(apiUrl = APPSYNC_MEMBER_URL, apiKey = APPSYNC_MEMBER_KEY) {
     this.apiUrl = apiUrl;
     this.apiKey = apiKey;
+  }
+
+  /**
+   * Validates that configuration is present
+   */
+  private validateConfig(): { apiUrl: string; apiKey: string } {
+    if (!this.apiUrl || !this.apiKey) {
+      throw new Error(
+        'Member Service AppSync configuration is missing. ' +
+        'Set VITE_APPSYNC_MEMBER_ENDPOINT and VITE_APPSYNC_MEMBER_API_KEY environment variables to enable sharing.'
+      );
+    }
+    return { apiUrl: this.apiUrl, apiKey: this.apiKey };
   }
 
   /**
@@ -51,11 +73,13 @@ export class MemberServiceClient {
     query: string,
     variables: Record<string, unknown>
   ): Promise<T> {
-    const response = await fetch(this.apiUrl, {
+    const { apiUrl, apiKey } = this.validateConfig();
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
+        'x-api-key': apiKey,
       },
       body: JSON.stringify({
         query,
@@ -87,6 +111,13 @@ export class MemberServiceClient {
   }
 
   /**
+   * Checks if the member service is configured
+   */
+  isConfigured(): boolean {
+    return Boolean(this.apiUrl && this.apiKey);
+  }
+
+  /**
    * Lists all members in a tenant with pagination
    */
   async listMembers(
@@ -99,6 +130,17 @@ export class MemberServiceClient {
     }>(LIST_MEMBERS_QUERY, { tenantId, page, pageSize });
 
     return result.listMembers;
+  }
+
+  /**
+   * Gets user info by Descope userId
+   */
+  async getUserById(userId: string): Promise<UserInfo | null> {
+    const result = await this.execute<{
+      getUserById: UserInfo | null;
+    }>(GET_USER_BY_ID_QUERY, { userId });
+
+    return result.getUserById;
   }
 }
 

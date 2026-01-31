@@ -115,6 +115,11 @@ export const ShareModal: FC<ShareModalProps> = ({
     const member = members.find((m) => m.loginId === loginId);
     if (member) {
       setSelectedMember(member);
+    }
+  };
+
+  const handleConfirmClick = (): void => {
+    if (selectedMember) {
       setShowConfirm(true);
     }
   };
@@ -215,6 +220,7 @@ export const ShareModal: FC<ShareModalProps> = ({
               ) : (
                 <Select
                   options={memberOptions}
+                  value={selectedMember?.loginId ?? ''}
                   onChange={handleMemberSelect}
                   placeholder="Select a user"
                   label="User"
@@ -226,6 +232,7 @@ export const ShareModal: FC<ShareModalProps> = ({
                   onClick={() => {
                     setStep('tenant');
                     setSelectedTenant(null);
+                    setSelectedMember(null);
                     setMembers([]);
                   }}
                 >
@@ -234,6 +241,11 @@ export const ShareModal: FC<ShareModalProps> = ({
                 <Button variant="ghost" onClick={onClose}>
                   Cancel
                 </Button>
+                {selectedMember && (
+                  <Button variant="primary" onClick={handleConfirmClick}>
+                    Share
+                  </Button>
+                )}
               </div>
             </>
           )}

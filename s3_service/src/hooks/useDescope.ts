@@ -3,7 +3,8 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { useUser } from '@descope/react-sdk';
+import { useDescope as useDescopeSdk, useUser } from '@descope/react-sdk';
+import { useNavigate } from 'react-router-dom';
 
 export interface UseDescopeResult {
   isAuthenticated: boolean;
@@ -21,19 +22,24 @@ export interface UseDescopeResult {
  */
 export function useDescope(): UseDescopeResult {
   const { user, isUserLoading } = useUser();
+  const sdk = useDescopeSdk();
+  const navigate = useNavigate();
 
   // Derive isAuthenticated directly from user to avoid race conditions
   const isAuthenticated = !!user;
 
-  const logout = useCallback(() => {
-    // Redirect to IDP service logout
-    const idpDomain = import.meta.env['VITE_IDP_DOMAIN'] as string;
-    if (idpDomain) {
-      window.location.href = `https://${idpDomain}/?logout=true`;
-    } else {
-      console.error('IDP_DOMAIN not configured');
+  const logout = useCallback(async () => {
+    try {
+      // Use Descope SDK logout method
+      await sdk.logout();
+      // Navigate to login page after logout
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('[useDescope] Logout failed:', error);
+      // Navigate to login page even if logout fails
+      navigate('/login', { replace: true });
     }
-  }, []);
+  }, [sdk, navigate]);
 
   const userProfile = useMemo(() => {
     if (!user) return null;

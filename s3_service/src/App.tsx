@@ -5,6 +5,7 @@
 import { AuthProvider } from '@descope/react-sdk';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ImageUploadPage } from './pages/ImageUploadPage';
+import { LoginPage } from './pages/LoginPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 const DESCOPE_PROJECT_ID = import.meta.env['VITE_DESCOPE_PROJECT_ID'] as string;
@@ -26,6 +27,7 @@ function App() {
     >
       <BrowserRouter>
         <Routes>
+          <Route path="/login" element={<LoginPage />} />
           <Route
             path="/"
             element={
