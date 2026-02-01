@@ -1,0 +1,34 @@
+Session prompts for commit d7ebf4e:
+
+1. User changed Descope from cookie-based to token-based auth ("manage in response body"),
+   but AppSync calls failed with 401 Unauthorized.
+
+2. Added JWT claim debugging to authTokenProvider.ts to inspect the token. Discovered JWT
+   issuer was `https://api.descope.com/v1/apps/{projectId}` but Terraform had
+   `https://api.descope.com/{projectId}` - missing `/v1/apps/`.
+
+3. Fixed OIDC issuer URL in all three AppSync terraform files (rebac, org, member) to use
+   correct issuer URL with `/v1/apps/`. Applied with `terraform apply`.
+
+4. User reported ShareModal "Next" button disappeared on tenant selection page. Found modal
+   auto-advanced on tenant selection via useEffect. Fixed by adding explicit "Next" button
+   that triggers loadMembers().
+
+5. User requested code quality review of s3_service. Review identified:
+   - Critical: Debug console.log statements exposing JWT tokens
+   - Critical: ESLint configuration broken (plugin:security incompatibility)
+   - High: Race condition in ImageGallery, TenantContext useEffect deps, input validation
+
+6. Fixed all critical/high issues:
+   - Removed all debug console.log statements from App.tsx, authTokenProvider.ts,
+     appsyncClient.ts, LoginPage.tsx
+   - Fixed ESLint by downgrading eslint-plugin-security to v2 and removing
+     `plugin:security/recommended` from extends, adding rules manually
+   - Fixed unnecessary type assertions in env variable declarations
+   - Fixed curly brace requirements in TenantContext and useDescope
+   - Fixed Promise-returning function issues by updating ConfirmDialog interface
+   - Fixed input validation type safety with proper type guard in ImageUploader
+   - Fixed test files with async without await issue
+
+7. Final verification: ESLint passes with 0 errors/warnings, build and tests pass,
+   deployed changes to S3/CloudFront.
