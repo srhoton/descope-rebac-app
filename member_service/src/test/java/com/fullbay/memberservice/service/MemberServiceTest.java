@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +26,7 @@ import com.descope.model.user.response.AllUsersResponseDetails;
 import com.descope.model.user.response.UserResponse;
 import com.descope.model.user.response.UserResponseDetails;
 import com.descope.sdk.mgmt.UserService;
+import com.fullbay.memberservice.config.MockDescopeClientProducer;
 import com.fullbay.memberservice.model.Member;
 import com.fullbay.memberservice.model.MemberRequest;
 import com.fullbay.memberservice.model.PaginatedResponse;
@@ -33,7 +35,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTest
@@ -41,13 +42,13 @@ class MemberServiceTest {
 
   @Inject MemberService memberService;
 
-  @InjectMock DescopeClient descopeClient;
-
+  private final DescopeClient descopeClient = MockDescopeClientProducer.getMockClient();
   private ManagementServices managementServices;
   private UserService mockUserService;
 
   @BeforeEach
   void setUp() {
+    reset(descopeClient);
     managementServices = mock(ManagementServices.class);
     mockUserService = mock(UserService.class);
     when(descopeClient.getManagementServices()).thenReturn(managementServices);

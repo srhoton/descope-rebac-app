@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'io.quarkus'
     id 'com.diffplug.spotless' version '6.25.0'
+    id 'jacoco'
 }
 
 repositories {
@@ -17,6 +18,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-amazon-lambda-rest'
     implementation 'io.quarkus:quarkus-logging-json'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
+    implementation 'io.quarkus:quarkus-hibernate-validator'
     implementation 'com.descope:java-sdk:1.0.60'
 
     testImplementation 'io.quarkus:quarkus-junit5'
@@ -63,4 +65,20 @@ tasks.register('format') {
 
 tasks.register('checkFormat') {
     dependsOn 'spotlessCheck'
+}
+
+jacoco {
+    toolVersion = '0.8.11'
+}
+
+test {
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
 }

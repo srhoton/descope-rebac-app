@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import com.descope.exception.ServerCommonException;
+import com.fullbay.orgservice.exception.ResourceNotFoundException;
 import com.fullbay.orgservice.model.PaginatedResponse;
 import com.fullbay.orgservice.model.Tenant;
 import com.fullbay.orgservice.model.TenantRequest;
@@ -65,7 +66,7 @@ class TenantResourceTest {
         .post("/tenants")
         .then()
         .statusCode(500)
-        .body("error", equalTo("Failed to create tenant"));
+        .body("error", equalTo("Service error"));
   }
 
   @Test
@@ -90,10 +91,15 @@ class TenantResourceTest {
   void getTenant_notFound_shouldReturn404() throws Exception {
     // Arrange
     when(tenantService.getTenant("nonexistent"))
-        .thenThrow(ServerCommonException.invalidArgument("Tenant not found"));
+        .thenThrow(new ResourceNotFoundException("Tenant", "nonexistent"));
 
     // Act & Assert
-    given().when().get("/tenants/nonexistent").then().statusCode(404);
+    given()
+        .when()
+        .get("/tenants/nonexistent")
+        .then()
+        .statusCode(404)
+        .body("error", equalTo("Tenant not found"));
   }
 
   @Test
@@ -178,7 +184,7 @@ class TenantResourceTest {
         .put("/tenants/tenant-123")
         .then()
         .statusCode(500)
-        .body("error", equalTo("Failed to update tenant"));
+        .body("error", equalTo("Service error"));
   }
 
   @Test
@@ -204,6 +210,6 @@ class TenantResourceTest {
         .delete("/tenants/tenant-123")
         .then()
         .statusCode(500)
-        .body("error", equalTo("Failed to delete tenant"));
+        .body("error", equalTo("Service error"));
   }
 }

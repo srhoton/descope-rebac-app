@@ -1,6 +1,7 @@
 package com.fullbay.memberservice;
 
 import jakarta.inject.Inject;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -14,7 +15,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-import com.descope.exception.DescopeException;
+import com.fullbay.memberservice.model.ErrorResponse;
 import com.fullbay.memberservice.model.Member;
 import com.fullbay.memberservice.model.MemberRequest;
 import com.fullbay.memberservice.model.PaginatedResponse;
@@ -27,8 +28,6 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-
-import io.quarkus.logging.Log;
 
 /** REST resource for managing Descope members within tenants. */
 @Path("/tenants/{tenantId}/members")
@@ -63,16 +62,9 @@ public class MemberResource {
   public Response createMember(
       @Parameter(description = "Tenant unique identifier", required = true) @PathParam("tenantId")
           String tenantId,
-      MemberRequest request) {
-    try {
-      Member member = memberService.createMember(tenantId, request);
-      return Response.status(Response.Status.CREATED).entity(member).build();
-    } catch (DescopeException e) {
-      Log.errorf(e, "Failed to create member in tenant %s: %s", tenantId, e.getMessage());
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-          .entity(new ErrorResponse("Failed to create member", e.getMessage()))
-          .build();
-    }
+      @Valid MemberRequest request) {
+    Member member = memberService.createMember(tenantId, request);
+    return Response.status(Response.Status.CREATED).entity(member).build();
   }
 
   /**
@@ -106,21 +98,8 @@ public class MemberResource {
           String tenantId,
       @Parameter(description = "Member login ID", required = true) @PathParam("loginId")
           String loginId) {
-    try {
-      Member member = memberService.getMember(tenantId, loginId);
-      return Response.ok(member).build();
-    } catch (DescopeException e) {
-      Log.errorf(
-          e, "Failed to retrieve member %s from tenant %s: %s", loginId, tenantId, e.getMessage());
-      if (e.getMessage() != null && e.getMessage().contains("not found")) {
-        return Response.status(Response.Status.NOT_FOUND)
-            .entity(new ErrorResponse("Member not found", e.getMessage()))
-            .build();
-      }
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-          .entity(new ErrorResponse("Failed to retrieve member", e.getMessage()))
-          .build();
-    }
+    Member member = memberService.getMember(tenantId, loginId);
+    return Response.ok(member).build();
   }
 
   /**
@@ -156,15 +135,8 @@ public class MemberResource {
           @QueryParam("pageSize")
           @DefaultValue("20")
           int pageSize) {
-    try {
-      PaginatedResponse<Member> response = memberService.getAllMembers(tenantId, page, pageSize);
-      return Response.ok(response).build();
-    } catch (DescopeException e) {
-      Log.errorf(e, "Failed to retrieve members from tenant %s: %s", tenantId, e.getMessage());
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-          .entity(new ErrorResponse("Failed to retrieve members", e.getMessage()))
-          .build();
-    }
+    PaginatedResponse<Member> response = memberService.getAllMembers(tenantId, page, pageSize);
+    return Response.ok(response).build();
   }
 
   /**
@@ -195,17 +167,9 @@ public class MemberResource {
           String tenantId,
       @Parameter(description = "Member login ID", required = true) @PathParam("loginId")
           String loginId,
-      MemberRequest request) {
-    try {
-      Member member = memberService.updateMember(tenantId, loginId, request);
-      return Response.ok(member).build();
-    } catch (DescopeException e) {
-      Log.errorf(
-          e, "Failed to update member %s in tenant %s: %s", loginId, tenantId, e.getMessage());
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-          .entity(new ErrorResponse("Failed to update member", e.getMessage()))
-          .build();
-    }
+      @Valid MemberRequest request) {
+    Member member = memberService.updateMember(tenantId, loginId, request);
+    return Response.ok(member).build();
   }
 
   /**
@@ -232,30 +196,7 @@ public class MemberResource {
           String tenantId,
       @Parameter(description = "Member login ID", required = true) @PathParam("loginId")
           String loginId) {
-    try {
-      memberService.deleteMember(tenantId, loginId);
-      return Response.noContent().build();
-    } catch (DescopeException e) {
-      Log.errorf(
-          e, "Failed to delete member %s from tenant %s: %s", loginId, tenantId, e.getMessage());
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-          .entity(new ErrorResponse("Failed to delete member", e.getMessage()))
-          .build();
-    }
-  }
-
-  /** Error response model for API errors. */
-  @Schema(description = "Error response information")
-  public static class ErrorResponse {
-    @Schema(description = "Error type", example = "Failed to create member")
-    public String error;
-
-    @Schema(description = "Detailed error message", example = "Member email cannot be empty")
-    public String message;
-
-    public ErrorResponse(String error, String message) {
-      this.error = error;
-      this.message = message;
-    }
+    memberService.deleteMember(tenantId, loginId);
+    return Response.noContent().build();
   }
 }

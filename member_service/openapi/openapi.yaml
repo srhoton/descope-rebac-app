@@ -215,13 +215,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse1"
+                $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse1"
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     ErrorResponse:
@@ -236,18 +236,6 @@ components:
           description: Detailed error message
           type: string
           example: Member email cannot be empty
-    ErrorResponse1:
-      description: Error response information
-      type: object
-      properties:
-        error:
-          description: Error type
-          type: string
-          example: User not found
-        message:
-          description: Detailed error message
-          type: string
-          example: User with ID xyz not found
     Member:
       description: Descope member information
       type: object
@@ -275,23 +263,30 @@ components:
     MemberRequest:
       description: Request payload for creating or updating a member
       required:
+      - loginId
       - email
       type: object
       properties:
         loginId:
           description: Unique member login identifier
+          maxLength: 255
+          minLength: 1
+          pattern: \S
           type: string
           example: john.doe@example.com
         name:
           description: Member display name
+          maxLength: 255
           type: string
           example: John Doe
         email:
           description: Member email address
+          pattern: \S
           type: string
           example: john.doe@example.com
         phone:
           description: Member phone number
+          maxLength: 50
           type: string
           example: +1-555-0123
     PaginatedResponse:

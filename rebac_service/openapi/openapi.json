@@ -278,6 +278,7 @@
         "properties" : {
           "relations" : {
             "description" : "List of relation tuples to create or delete",
+            "minItems" : 1,
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/RelationTuple"
@@ -292,21 +293,29 @@
         "properties" : {
           "resource" : {
             "description" : "Resource identifier",
+            "maxLength" : 500,
+            "pattern" : "\\S",
             "type" : "string",
             "example" : "document:123"
           },
           "relationDefinition" : {
             "description" : "Relation type/definition",
+            "maxLength" : 100,
+            "pattern" : "\\S",
             "type" : "string",
             "example" : "viewer"
           },
           "namespace" : {
             "description" : "Namespace for the resource",
+            "maxLength" : 100,
+            "pattern" : "\\S",
             "type" : "string",
             "example" : "documents"
           },
           "target" : {
             "description" : "Target/subject identifier",
+            "maxLength" : 500,
+            "pattern" : "\\S",
             "type" : "string",
             "example" : "user:alice@example.com"
           }

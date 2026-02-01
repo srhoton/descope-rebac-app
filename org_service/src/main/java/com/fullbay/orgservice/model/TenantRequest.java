@@ -1,5 +1,8 @@
 package com.fullbay.orgservice.model;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -9,6 +12,8 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 public class TenantRequest {
 
   @JsonProperty("name")
+  @NotBlank(message = "Tenant name is required")
+  @Size(min = 1, max = 255, message = "Tenant name must be between 1 and 255 characters")
   @Schema(description = "Tenant name", required = true, example = "Acme Corporation")
   private String name;
 

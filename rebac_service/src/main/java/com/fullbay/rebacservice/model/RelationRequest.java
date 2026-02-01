@@ -2,6 +2,9 @@ package com.fullbay.rebacservice.model;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -11,6 +14,8 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 public class RelationRequest {
 
   @JsonProperty("relations")
+  @NotEmpty(message = "Relations list cannot be empty")
+  @Valid
   @Schema(description = "List of relation tuples to create or delete", required = true)
   private List<RelationTuple> relations;
 
