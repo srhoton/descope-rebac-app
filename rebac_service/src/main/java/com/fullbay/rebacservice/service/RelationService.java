@@ -21,16 +21,12 @@ public class RelationService {
   @Inject DescopeClient descopeClient;
 
   /**
-   * Creates one or more FGA relation tuples.
+   * Converts a list of RelationTuples to Descope Relation objects.
    *
-   * @param tuples The list of relation tuples to create
-   * @throws DescopeException if the operation fails
+   * @param tuples The list of relation tuples to convert
+   * @return List of Descope Relation objects
    */
-  public void createRelations(List<RelationTuple> tuples) throws DescopeException {
-    Log.infof("Creating %d relation tuple(s)", tuples.size());
-
-    AuthzService authzService = descopeClient.getManagementServices().getAuthzService();
-
+  private List<Relation> convertTuplesToRelations(List<RelationTuple> tuples) {
     List<Relation> relations = new ArrayList<>();
     for (RelationTuple tuple : tuples) {
       Relation relation = new Relation();
@@ -40,6 +36,39 @@ public class RelationService {
       relation.setTarget(tuple.getTarget());
       relations.add(relation);
     }
+    return relations;
+  }
+
+  /**
+   * Converts a list of Descope Relation objects to RelationTuples.
+   *
+   * @param relations The list of Descope Relation objects to convert
+   * @return List of RelationTuple objects
+   */
+  private List<RelationTuple> convertRelationsToTuples(List<Relation> relations) {
+    List<RelationTuple> tuples = new ArrayList<>();
+    for (Relation relation : relations) {
+      tuples.add(
+          new RelationTuple(
+              relation.getResource(),
+              relation.getRelationDefinition(),
+              relation.getNamespace(),
+              relation.getTarget()));
+    }
+    return tuples;
+  }
+
+  /**
+   * Creates one or more FGA relation tuples.
+   *
+   * @param tuples The list of relation tuples to create
+   * @throws DescopeException if the operation fails
+   */
+  public void createRelations(List<RelationTuple> tuples) throws DescopeException {
+    Log.infof("Creating %d relation tuple(s)", tuples.size());
+
+    AuthzService authzService = descopeClient.getManagementServices().getAuthzService();
+    List<Relation> relations = convertTuplesToRelations(tuples);
 
     authzService.createRelations(relations);
     Log.infof("Successfully created %d relation tuple(s)", tuples.size());
@@ -55,16 +84,7 @@ public class RelationService {
     Log.infof("Deleting %d relation tuple(s)", tuples.size());
 
     AuthzService authzService = descopeClient.getManagementServices().getAuthzService();
-
-    List<Relation> relations = new ArrayList<>();
-    for (RelationTuple tuple : tuples) {
-      Relation relation = new Relation();
-      relation.setResource(tuple.getResource());
-      relation.setRelationDefinition(tuple.getRelationDefinition());
-      relation.setNamespace(tuple.getNamespace());
-      relation.setTarget(tuple.getTarget());
-      relations.add(relation);
-    }
+    List<Relation> relations = convertTuplesToRelations(tuples);
 
     authzService.deleteRelations(relations);
     Log.infof("Successfully deleted %d relation tuple(s)", tuples.size());
@@ -104,16 +124,7 @@ public class RelationService {
 
     AuthzService authzService = descopeClient.getManagementServices().getAuthzService();
     List<Relation> relations = authzService.resourceRelations(resourceId);
-
-    List<RelationTuple> tuples = new ArrayList<>();
-    for (Relation relation : relations) {
-      tuples.add(
-          new RelationTuple(
-              relation.getResource(),
-              relation.getRelationDefinition(),
-              relation.getNamespace(),
-              relation.getTarget()));
-    }
+    List<RelationTuple> tuples = convertRelationsToTuples(relations);
 
     Log.infof("Found %d relation(s) for resource", tuples.size());
     return tuples;
@@ -131,16 +142,7 @@ public class RelationService {
 
     AuthzService authzService = descopeClient.getManagementServices().getAuthzService();
     List<Relation> relations = authzService.whatCanTargetAccess(targetId);
-
-    List<RelationTuple> tuples = new ArrayList<>();
-    for (Relation relation : relations) {
-      tuples.add(
-          new RelationTuple(
-              relation.getResource(),
-              relation.getRelationDefinition(),
-              relation.getNamespace(),
-              relation.getTarget()));
-    }
+    List<RelationTuple> tuples = convertRelationsToTuples(relations);
 
     Log.infof("Found %d relation(s) for target", tuples.size());
     return tuples;

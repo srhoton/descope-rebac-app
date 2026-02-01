@@ -219,5 +219,8 @@ components:
       properties:
         name:
           description: Tenant name
+          maxLength: 255
+          minLength: 1
+          pattern: \S
           type: string
           example: Acme Corporation

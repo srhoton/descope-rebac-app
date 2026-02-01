@@ -1,6 +1,7 @@
 package com.fullbay.rebacservice;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -58,8 +59,8 @@ class RelationResourceTest {
         .post("/relations")
         .then()
         .statusCode(400)
-        .body("error", equalTo("Invalid request"))
-        .body("message", equalTo("Relations list cannot be empty"));
+        .body("error", equalTo("Validation failed"))
+        .body("message", containsString("Relations list cannot be empty"));
   }
 
   @Test
@@ -80,7 +81,7 @@ class RelationResourceTest {
         .post("/relations")
         .then()
         .statusCode(500)
-        .body("error", equalTo("Failed to create relations"));
+        .body("error", equalTo("Service error"));
   }
 
   @Test
@@ -111,8 +112,8 @@ class RelationResourceTest {
         .delete("/relations")
         .then()
         .statusCode(400)
-        .body("error", equalTo("Invalid request"))
-        .body("message", equalTo("Relations list cannot be empty"));
+        .body("error", equalTo("Validation failed"))
+        .body("message", containsString("Relations list cannot be empty"));
   }
 
   @Test
@@ -133,7 +134,7 @@ class RelationResourceTest {
         .delete("/relations")
         .then()
         .statusCode(500)
-        .body("error", equalTo("Failed to delete relations"));
+        .body("error", equalTo("Service error"));
   }
 
   @Test
@@ -186,7 +187,7 @@ class RelationResourceTest {
         .get("/relations/who-can-access")
         .then()
         .statusCode(500)
-        .body("error", equalTo("Failed to query who can access"));
+        .body("error", equalTo("Service error"));
   }
 
   @Test
@@ -240,7 +241,7 @@ class RelationResourceTest {
         .get("/relations/resource/document:123")
         .then()
         .statusCode(500)
-        .body("error", equalTo("Failed to get resource relations"));
+        .body("error", equalTo("Service error"));
   }
 
   @Test
@@ -294,6 +295,6 @@ class RelationResourceTest {
         .get("/relations/target/user:alice@example.com")
         .then()
         .statusCode(500)
-        .body("error", equalTo("Failed to get target access"));
+        .body("error", equalTo("Service error"));
   }
 }

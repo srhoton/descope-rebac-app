@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,6 +21,7 @@ import com.descope.exception.ServerCommonException;
 import com.descope.model.mgmt.ManagementServices;
 import com.descope.model.tenant.Tenant;
 import com.descope.sdk.mgmt.TenantService;
+import com.fullbay.orgservice.config.MockDescopeClientProducer;
 import com.fullbay.orgservice.model.PaginatedResponse;
 import com.fullbay.orgservice.model.TenantRequest;
 
@@ -27,7 +29,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTest
@@ -35,13 +36,13 @@ class TenantServiceTest {
 
   @Inject com.fullbay.orgservice.service.TenantService tenantService;
 
-  @InjectMock DescopeClient descopeClient;
-
+  private final DescopeClient descopeClient = MockDescopeClientProducer.getMockClient();
   private ManagementServices managementServices;
   private TenantService mockTenantService;
 
   @BeforeEach
   void setUp() {
+    reset(descopeClient);
     managementServices = org.mockito.Mockito.mock(ManagementServices.class);
     mockTenantService = org.mockito.Mockito.mock(TenantService.class);
     when(descopeClient.getManagementServices()).thenReturn(managementServices);

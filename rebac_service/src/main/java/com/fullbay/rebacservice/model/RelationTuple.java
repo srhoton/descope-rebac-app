@@ -1,5 +1,8 @@
 package com.fullbay.rebacservice.model;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -9,18 +12,26 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 public class RelationTuple {
 
   @JsonProperty("resource")
+  @NotBlank(message = "Resource is required")
+  @Size(max = 500, message = "Resource must not exceed 500 characters")
   @Schema(description = "Resource identifier", required = true, example = "document:123")
   private String resource;
 
   @JsonProperty("relationDefinition")
+  @NotBlank(message = "Relation definition is required")
+  @Size(max = 100, message = "Relation definition must not exceed 100 characters")
   @Schema(description = "Relation type/definition", required = true, example = "viewer")
   private String relationDefinition;
 
   @JsonProperty("namespace")
+  @NotBlank(message = "Namespace is required")
+  @Size(max = 100, message = "Namespace must not exceed 100 characters")
   @Schema(description = "Namespace for the resource", required = true, example = "documents")
   private String namespace;
 
   @JsonProperty("target")
+  @NotBlank(message = "Target is required")
+  @Size(max = 500, message = "Target must not exceed 500 characters")
   @Schema(
       description = "Target/subject identifier",
       required = true,

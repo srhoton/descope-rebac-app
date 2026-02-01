@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,13 +19,13 @@ import com.descope.exception.ServerCommonException;
 import com.descope.model.authz.Relation;
 import com.descope.model.mgmt.ManagementServices;
 import com.descope.sdk.mgmt.AuthzService;
+import com.fullbay.rebacservice.config.MockDescopeClientProducer;
 import com.fullbay.rebacservice.model.RelationTuple;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTest
@@ -32,13 +33,13 @@ class RelationServiceTest {
 
   @Inject RelationService relationService;
 
-  @InjectMock DescopeClient descopeClient;
-
+  private final DescopeClient descopeClient = MockDescopeClientProducer.getMockClient();
   private ManagementServices managementServices;
   private AuthzService mockAuthzService;
 
   @BeforeEach
   void setUp() {
+    reset(descopeClient);
     managementServices = org.mockito.Mockito.mock(ManagementServices.class);
     mockAuthzService = org.mockito.Mockito.mock(AuthzService.class);
     when(descopeClient.getManagementServices()).thenReturn(managementServices);

@@ -15,6 +15,7 @@ import com.descope.model.user.request.UserSearchRequest;
 import com.descope.model.user.response.AllUsersResponseDetails;
 import com.descope.model.user.response.UserResponse;
 import com.descope.model.user.response.UserResponseDetails;
+import com.fullbay.memberservice.exception.MemberNotFoundException;
 import com.fullbay.memberservice.model.Member;
 import com.fullbay.memberservice.model.MemberRequest;
 import com.fullbay.memberservice.model.PaginatedResponse;
@@ -93,10 +94,7 @@ public class MemberService {
     if (user.getUserTenants() == null
         || user.getUserTenants().stream()
             .noneMatch(tenant -> tenant.getTenantId().equals(tenantId))) {
-      throw new RuntimeException(
-          String.format(
-              "Member %s not found in tenant %s or does not belong to this tenant",
-              loginId, tenantId));
+      throw new MemberNotFoundException(tenantId, loginId);
     }
 
     return new Member(

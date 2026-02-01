@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 
 import com.descope.exception.ServerCommonException;
+import com.fullbay.memberservice.exception.MemberNotFoundException;
 import com.fullbay.memberservice.model.Member;
 import com.fullbay.memberservice.model.MemberRequest;
 import com.fullbay.memberservice.model.PaginatedResponse;
@@ -74,7 +75,7 @@ class MemberResourceTest {
         .post("/tenants/{tenantId}/members", tenantId)
         .then()
         .statusCode(500)
-        .body("error", equalTo("Failed to create member"));
+        .body("error", equalTo("Service error"));
   }
 
   @Test
@@ -104,7 +105,7 @@ class MemberResourceTest {
     String tenantId = "tenant123";
     String loginId = "nonexistent@example.com";
     when(memberService.getMember(tenantId, loginId))
-        .thenThrow(new RuntimeException("Member not found in tenant"));
+        .thenThrow(new MemberNotFoundException(tenantId, loginId));
 
     // When/Then
     given()
@@ -202,6 +203,6 @@ class MemberResourceTest {
         .delete("/tenants/{tenantId}/members/{loginId}", tenantId, loginId)
         .then()
         .statusCode(500)
-        .body("error", equalTo("Failed to delete member"));
+        .body("error", equalTo("Service error"));
   }
 }
