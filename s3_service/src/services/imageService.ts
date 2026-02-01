@@ -10,7 +10,7 @@ import type {
 } from '../types/image';
 import { appSyncClient } from './appsyncClient';
 
-const API_BASE_URL = import.meta.env['VITE_API_ENDPOINT'] as string;
+const API_BASE_URL = import.meta.env['VITE_API_ENDPOINT'];
 
 if (!API_BASE_URL) {
   throw new Error('VITE_API_ENDPOINT is missing from environment variables');
@@ -97,14 +97,15 @@ export class ImageService {
 
   /**
    * Gets all images accessible by a user (owned or shared with them)
+   * For shared images, only includes those shared to the current tenant
    */
-  async getUserImages(userId: string): Promise<Image[]> {
+  async getUserImages(userId: string, currentTenantId: string): Promise<Image[]> {
     try {
-      // Get all relations for the user from ReBaC
-      const { relations } = await appSyncClient.getTargetAccess(userId);
+      // Get all relations for the user from ReBaC (both owner and viewer for current tenant)
+      const { relations } = await appSyncClient.getTargetAccessWithTenant(userId, currentTenantId);
 
       // Get image access info including owner userIds
-      const imageOwnerMap = await appSyncClient.getImageAccessInfo(userId, relations);
+      const imageOwnerMap = await appSyncClient.getImageAccessInfo(userId, relations, currentTenantId);
 
       // Generate download URLs for each image using the owner's userId
       const images = await Promise.all(

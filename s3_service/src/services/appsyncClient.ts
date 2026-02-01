@@ -1,14 +1,45 @@
 /**
  * AppSync GraphQL client for ReBaC service
+ * Uses Descope OIDC JWT authentication
  */
 
+import { getAuthToken } from './authTokenProvider';
 import type { RelationTuple } from '../types/image';
 
-const APPSYNC_API_URL = import.meta.env['VITE_APPSYNC_ENDPOINT'] as string;
-const APPSYNC_API_KEY = import.meta.env['VITE_APPSYNC_API_KEY'] as string;
+const APPSYNC_API_URL = import.meta.env['VITE_APPSYNC_ENDPOINT'];
 
-if (!APPSYNC_API_URL || !APPSYNC_API_KEY) {
-  throw new Error('AppSync configuration is missing from environment variables');
+/**
+ * Parsed viewer target with userId and tenantId
+ */
+interface ParsedViewerTarget {
+  userId: string;
+  tenantId: string;
+}
+
+/**
+ * Parse a viewer target in format "user:{userId}#tenant:{tenantId}"
+ * Returns null if the format doesn't match (legacy format without tenant)
+ */
+function parseViewerTarget(target: string): ParsedViewerTarget | null {
+  const match = target.match(/^user:([^#]+)#tenant:(.+)$/);
+  if (!match?.[1] || !match[2]) {
+    return null;
+  }
+  return {
+    userId: match[1],
+    tenantId: match[2],
+  };
+}
+
+/**
+ * Build a viewer target string in format "user:{userId}#tenant:{tenantId}"
+ */
+function buildViewerTarget(userId: string, tenantId: string): string {
+  return `user:${userId}#tenant:${tenantId}`;
+}
+
+if (!APPSYNC_API_URL) {
+  throw new Error('VITE_APPSYNC_ENDPOINT is missing from environment variables');
 }
 
 /**
@@ -48,17 +79,6 @@ const DELETE_RELATIONS_MUTATION = `
 `;
 
 /**
- * Query to get who can access a resource
- */
-const WHO_CAN_ACCESS_QUERY = `
-  query WhoCanAccess($namespace: String!, $relationDefinition: String!, $resource: String!) {
-    whoCanAccess(namespace: $namespace, relationDefinition: $relationDefinition, resource: $resource) {
-      targets
-    }
-  }
-`;
-
-/**
  * Query to get all relations for a resource
  */
 const GET_RESOURCE_RELATIONS_QUERY = `
@@ -76,28 +96,33 @@ const GET_RESOURCE_RELATIONS_QUERY = `
 
 /**
  * AppSync client for interacting with ReBaC service
+ * Uses Descope OIDC JWT authentication
  */
 export class AppSyncClient {
   private readonly apiUrl: string;
-  private readonly apiKey: string;
 
-  constructor(apiUrl = APPSYNC_API_URL, apiKey = APPSYNC_API_KEY) {
+  constructor(apiUrl = APPSYNC_API_URL) {
     this.apiUrl = apiUrl;
-    this.apiKey = apiKey;
   }
 
   /**
    * Executes a GraphQL query or mutation
+   * Uses Descope session token for authentication
    */
   private async execute<T>(
     query: string,
     variables: Record<string, unknown>
   ): Promise<T> {
+    const sessionToken = getAuthToken();
+    if (!sessionToken) {
+      throw new Error('No session token available. User must be authenticated.');
+    }
+
     const response = await fetch(this.apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
+        'Authorization': `Bearer ${sessionToken}`,
       },
       body: JSON.stringify({
         query,
@@ -129,7 +154,7 @@ export class AppSyncClient {
   }
 
   /**
-   * Gets all resources accessible by a user
+   * Gets all resources accessible by a user (owner relations only)
    */
   async getTargetAccess(
     userId: string
@@ -140,6 +165,37 @@ export class AppSyncClient {
     }>(GET_TARGET_ACCESS_QUERY, { targetId });
 
     return result.getTargetAccess;
+  }
+
+  /**
+   * Gets all relations for a user in a specific tenant context.
+   * This combines:
+   * 1. Owner relations (target = user:{userId})
+   * 2. Viewer relations for the current tenant (target = user:{userId}#tenant:{tenantId})
+   */
+  async getTargetAccessWithTenant(
+    userId: string,
+    tenantId: string
+  ): Promise<{ relations: RelationTuple[] }> {
+    // Query for owner relations (simple user target)
+    const ownerTargetId = `user:${userId}`;
+    const ownerResult = await this.execute<{
+      getTargetAccess: { relations: RelationTuple[] };
+    }>(GET_TARGET_ACCESS_QUERY, { targetId: ownerTargetId });
+
+    // Query for viewer relations in the current tenant
+    const viewerTargetId = buildViewerTarget(userId, tenantId);
+    const viewerResult = await this.execute<{
+      getTargetAccess: { relations: RelationTuple[] };
+    }>(GET_TARGET_ACCESS_QUERY, { targetId: viewerTargetId });
+
+    // Combine the results
+    return {
+      relations: [
+        ...ownerResult.getTargetAccess.relations,
+        ...viewerResult.getTargetAccess.relations,
+      ],
+    };
   }
 
   /**
@@ -169,34 +225,69 @@ export class AppSyncClient {
 
   /**
    * Filters relations to get only image resources the user can access (owner or viewer)
+   * For viewer relations, only includes those scoped to the current tenant
+   * Owner relations are included regardless of tenant (owners see their images everywhere)
    */
-  filterImageRelations(relations: RelationTuple[]): string[] {
+  filterImageRelations(relations: RelationTuple[], currentTenantId: string): string[] {
     return relations
-      .filter(
-        (rel) =>
-          rel.namespace === 'metadata_item' &&
-          (rel.relationDefinition === 'owner' || rel.relationDefinition === 'viewer') &&
-          rel.resource.startsWith('image:')
-      )
+      .filter((rel) => {
+        if (rel.namespace !== 'metadata_item' || !rel.resource.startsWith('image:')) {
+          return false;
+        }
+
+        if (rel.relationDefinition === 'owner') {
+          // Owners see their images in all tenants
+          return true;
+        }
+
+        if (rel.relationDefinition === 'viewer') {
+          // Viewers only see images shared to their current tenant
+          const parsed = parseViewerTarget(rel.target);
+          // Skip legacy format (no tenant) - effectively "deletes" old shares
+          if (!parsed) {
+            return false;
+          }
+          return parsed.tenantId === currentTenantId;
+        }
+
+        return false;
+      })
       .map((rel) => rel.resource.replace('image:', ''));
   }
 
   /**
    * Gets image access info including owner userId for each image
    * Returns a map of imageId -> ownerUserId
+   * For viewer relations, only includes those scoped to the current tenant
    */
   async getImageAccessInfo(
     userId: string,
-    relations: RelationTuple[]
+    relations: RelationTuple[],
+    currentTenantId: string
   ): Promise<Map<string, string>> {
     const imageOwnerMap = new Map<string, string>();
 
-    const imageRelations = relations.filter(
-      (rel) =>
-        rel.namespace === 'metadata_item' &&
-        (rel.relationDefinition === 'owner' || rel.relationDefinition === 'viewer') &&
-        rel.resource.startsWith('image:')
-    );
+    const imageRelations = relations.filter((rel) => {
+      if (rel.namespace !== 'metadata_item' || !rel.resource.startsWith('image:')) {
+        return false;
+      }
+
+      if (rel.relationDefinition === 'owner') {
+        return true;
+      }
+
+      if (rel.relationDefinition === 'viewer') {
+        // Only include viewer relations scoped to current tenant
+        const parsed = parseViewerTarget(rel.target);
+        // Skip legacy format (no tenant)
+        if (!parsed) {
+          return false;
+        }
+        return parsed.tenantId === currentTenantId;
+      }
+
+      return false;
+    });
 
     for (const rel of imageRelations) {
       const imageId = rel.resource.replace('image:', '');
@@ -225,17 +316,18 @@ export class AppSyncClient {
   }
 
   /**
-   * Creates a viewer relation for an image
+   * Creates a viewer relation for an image scoped to a specific tenant
    */
   async createViewerRelation(
     imageId: string,
-    targetUserId: string
+    targetUserId: string,
+    targetTenantId: string
   ): Promise<{ message: string }> {
     const relation: RelationTuple = {
       namespace: 'metadata_item',
       relationDefinition: 'viewer',
       resource: `image:${imageId}`,
-      target: `user:${targetUserId}`,
+      target: buildViewerTarget(targetUserId, targetTenantId),
     };
 
     const result = await this.execute<{
@@ -250,17 +342,18 @@ export class AppSyncClient {
   }
 
   /**
-   * Deletes a viewer relation for an image
+   * Deletes a viewer relation for an image scoped to a specific tenant
    */
   async deleteViewerRelation(
     imageId: string,
-    targetUserId: string
+    targetUserId: string,
+    targetTenantId: string
   ): Promise<boolean> {
     const relation: RelationTuple = {
       namespace: 'metadata_item',
       relationDefinition: 'viewer',
       resource: `image:${imageId}`,
-      target: `user:${targetUserId}`,
+      target: buildViewerTarget(targetUserId, targetTenantId),
     };
 
     const result = await this.execute<{
@@ -275,26 +368,33 @@ export class AppSyncClient {
   }
 
   /**
-   * Gets all users who can view an image (viewers, not owners)
+   * Gets all viewer relations for an image with parsed user and tenant info
+   * Returns only tenant-scoped viewer relations (ignores legacy format)
    */
-  async getImageViewers(imageId: string): Promise<string[]> {
-    const result = await this.execute<{
-      whoCanAccess: { targets: string[] };
-    }>(WHO_CAN_ACCESS_QUERY, {
-      namespace: 'metadata_item',
-      relationDefinition: 'viewer',
-      resource: `image:${imageId}`,
-    });
-
-    // Filter out owner targets - we only want explicit viewers
+  async getImageViewers(imageId: string): Promise<Array<{ userId: string; tenantId: string }>> {
     const relations = await this.getResourceRelations(`image:${imageId}`);
-    const ownerTargets = relations.relations
-      .filter((rel) => rel.relationDefinition === 'owner')
-      .map((rel) => rel.target);
 
-    return result.whoCanAccess.targets.filter(
-      (target) => !ownerTargets.includes(target)
-    );
+    // Filter to viewer relations and parse the target
+    const viewers: Array<{ userId: string; tenantId: string }> = [];
+
+    for (const rel of relations.relations) {
+      if (rel.relationDefinition !== 'viewer') {
+        continue;
+      }
+
+      const parsed = parseViewerTarget(rel.target);
+      // Skip legacy format (no tenant)
+      if (!parsed) {
+        continue;
+      }
+
+      viewers.push({
+        userId: parsed.userId,
+        tenantId: parsed.tenantId,
+      });
+    }
+
+    return viewers;
   }
 
   /**

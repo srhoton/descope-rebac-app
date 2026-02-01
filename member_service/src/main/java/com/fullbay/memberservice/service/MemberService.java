@@ -18,6 +18,7 @@ import com.descope.model.user.response.UserResponseDetails;
 import com.fullbay.memberservice.model.Member;
 import com.fullbay.memberservice.model.MemberRequest;
 import com.fullbay.memberservice.model.PaginatedResponse;
+import com.fullbay.memberservice.model.UserInfo;
 
 import io.quarkus.logging.Log;
 
@@ -194,9 +195,7 @@ public class MemberService {
               .map(
                   user ->
                       new Member(
-                          user.getLoginIds() != null && !user.getLoginIds().isEmpty()
-                              ? user.getLoginIds().get(0)
-                              : user.getUserId(),
+                          user.getUserId(),
                           user.getName(),
                           user.getEmail(),
                           user.getPhone(),
@@ -209,5 +208,24 @@ public class MemberService {
         paginatedMembers.size(), totalItems, tenantId);
 
     return new PaginatedResponse<>(paginatedMembers, page, pageSize, totalItems);
+  }
+
+  /**
+   * Retrieves basic user info by Descope userId.
+   *
+   * @param userId The Descope user ID
+   * @return User info containing userId, name, and email
+   * @throws DescopeException If the user is not found or retrieval fails
+   */
+  public UserInfo getUserById(String userId) throws DescopeException {
+    Log.infof("Retrieving user info for userId: %s", userId);
+
+    UserResponseDetails userDetails =
+        descopeClient.getManagementServices().getUserService().loadByUserId(userId);
+    UserResponse user = userDetails.getUser();
+
+    Log.infof("Retrieved user info for userId: %s, email: %s", userId, user.getEmail());
+
+    return new UserInfo(user.getUserId(), user.getName(), user.getEmail());
   }
 }

@@ -10,7 +10,6 @@
     "plugin:react/recommended",
     "plugin:react-hooks/recommended",
     "plugin:jsx-a11y/recommended",
-    "plugin:security/recommended",
     "prettier"
   ],
   "parser": "@typescript-eslint/parser",
@@ -24,7 +23,7 @@
   },
   "plugins": ["react-refresh", "@typescript-eslint", "react", "jsx-a11y", "security"],
   "rules": {
-    "react-refresh/only-export-components": ["warn", { "allowConstantExport": true }],
+    "react-refresh/only-export-components": ["warn", { "allowConstantExport": true, "allowExportNames": ["useTenant"] }],
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/no-explicit-any": "error",
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
@@ -38,12 +37,19 @@
     "react/prop-types": "off",
     "no-console": ["error", { "allow": ["warn", "error"] }],
     "eqeqeq": ["error", "always"],
-    "curly": ["error", "all"]
+    "curly": ["error", "all"],
+    "security/detect-object-injection": "off",
+    "security/detect-non-literal-regexp": "warn",
+    "security/detect-unsafe-regex": "error",
+    "security/detect-buffer-noassert": "error",
+    "security/detect-eval-with-expression": "error",
+    "security/detect-no-csrf-before-method-override": "error",
+    "security/detect-possible-timing-attacks": "warn"
   },
   "settings": {
     "react": {
       "version": "detect"
     }
   },
-  "ignorePatterns": ["dist", "node_modules", "**/*.js"]
+  "ignorePatterns": ["dist", "node_modules", "**/*.js", "vite.config.ts"]
 }

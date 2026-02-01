@@ -5,11 +5,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OrgServiceClient } from '../orgServiceClient';
 
+// Mock the auth token provider
+vi.mock('../authTokenProvider', () => ({
+  getAuthToken: vi.fn(() => 'mock-session-token'),
+}));
+
 describe('OrgServiceClient', () => {
   let client: OrgServiceClient;
 
   beforeEach(() => {
-    client = new OrgServiceClient('https://test-api.example.com', 'test-key');
+    client = new OrgServiceClient('https://test-api.example.com');
     global.fetch = vi.fn();
   });
 
@@ -32,7 +37,7 @@ describe('OrgServiceClient', () => {
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse,
+        json: () => Promise.resolve(mockResponse),
       });
 
       const result = await client.listTenants();
@@ -45,7 +50,7 @@ describe('OrgServiceClient', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': 'test-key',
+            'Authorization': 'Bearer mock-session-token',
           },
         })
       );
@@ -67,7 +72,7 @@ describe('OrgServiceClient', () => {
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse,
+        json: () => Promise.resolve(mockResponse),
       });
 
       await expect(client.listTenants()).rejects.toThrow('GraphQL error: Unauthorized');
@@ -78,7 +83,7 @@ describe('OrgServiceClient', () => {
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse,
+        json: () => Promise.resolve(mockResponse),
       });
 
       await expect(client.listTenants()).rejects.toThrow('No data returned from Org Service');

@@ -5,11 +5,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemberServiceClient } from '../memberServiceClient';
 
+// Mock the auth token provider
+vi.mock('../authTokenProvider', () => ({
+  getAuthToken: vi.fn(() => 'mock-session-token'),
+}));
+
 describe('MemberServiceClient', () => {
   let client: MemberServiceClient;
 
   beforeEach(() => {
-    client = new MemberServiceClient('https://test-api.example.com', 'test-key');
+    client = new MemberServiceClient('https://test-api.example.com');
     global.fetch = vi.fn();
   });
 
@@ -44,7 +49,7 @@ describe('MemberServiceClient', () => {
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse,
+        json: () => Promise.resolve(mockResponse),
       });
 
       const result = await client.listMembers('tenant1');
@@ -57,7 +62,7 @@ describe('MemberServiceClient', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': 'test-key',
+            'Authorization': 'Bearer mock-session-token',
           },
         })
       );
@@ -79,7 +84,7 @@ describe('MemberServiceClient', () => {
 
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse,
+        json: () => Promise.resolve(mockResponse),
       });
 
       await expect(client.listMembers('tenant1')).rejects.toThrow('GraphQL error: Tenant not found');

@@ -46,7 +46,7 @@ export const Button: FC<ButtonProps> = ({
         sizeStyles[size],
         className
       )}
-      disabled={disabled || isLoading}
+      disabled={disabled === true || isLoading}
       {...props}
     >
       {isLoading && (

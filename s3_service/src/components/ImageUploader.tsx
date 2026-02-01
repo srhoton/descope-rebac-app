@@ -3,9 +3,16 @@
  */
 
 import { useCallback, useState, type FC, type ChangeEvent, type DragEvent } from 'react';
-import { ALLOWED_IMAGE_TYPES, MAX_FILE_SIZE } from '../types/image';
+import { ALLOWED_IMAGE_TYPES, MAX_FILE_SIZE, type AllowedImageType } from '../types/image';
 import { imageService } from '../services/imageService';
 import { useDescope } from '../hooks/useDescope';
+
+/**
+ * Type guard to check if a string is an allowed image type
+ */
+function isAllowedImageType(type: string): type is AllowedImageType {
+  return (ALLOWED_IMAGE_TYPES as readonly string[]).includes(type);
+}
 
 interface ImageUploaderProps {
   onUploadComplete: () => void;
@@ -21,7 +28,7 @@ export const ImageUploader: FC<ImageUploaderProps> = ({ onUploadComplete }) => {
   const [dragActive, setDragActive] = useState(false);
 
   const validateFile = (file: File): string | null => {
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type as never)) {
+    if (!isAllowedImageType(file.type)) {
       return `Invalid file type. Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}`;
     }
 

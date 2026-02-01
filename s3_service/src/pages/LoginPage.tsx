@@ -18,18 +18,16 @@ export const LoginPage: FC = () => {
   // Redirect to home if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isSessionLoading) {
-      console.log('[LoginPage] User is authenticated, redirecting to home');
       navigate('/', { replace: true });
     }
   }, [isAuthenticated, isSessionLoading, navigate]);
 
   const handleSuccess = useCallback(() => {
-    console.log('[LoginPage] Authentication successful, redirecting to home');
     navigate('/', { replace: true });
   }, [navigate]);
 
   const handleError = useCallback((error: CustomEvent) => {
-    console.error('[LoginPage] Authentication error:', error.detail);
+    console.error('Authentication error:', error.detail);
   }, []);
 
   // Show loading state while checking session
@@ -77,7 +75,7 @@ export const LoginPage: FC = () => {
         </div>
 
         <Descope
-          flowId="sign-up-or-in"
+          flowId="sign-up-or-in-fullbay"
           onSuccess={handleSuccess}
           onError={handleError}
         />

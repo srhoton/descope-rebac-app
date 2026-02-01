@@ -83,3 +83,10 @@ variable "s3_service_domain_name" {
   type        = string
   default     = "descope-s3.sb.fullbay.com"
 }
+
+# Descope OIDC Configuration
+variable "descope_project_id" {
+  description = "Descope Project ID for OIDC authentication on AppSync APIs"
+  type        = string
+  default     = "P38a668rJn8AUs65nESCiJqendj6"
+}

@@ -8,7 +8,9 @@ import type { SharedUser } from '../types/sharing';
 import { imageService } from '../services/imageService';
 import { appSyncClient } from '../services/appsyncClient';
 import { memberServiceClient } from '../services/memberServiceClient';
+import { orgServiceClient } from '../services/orgServiceClient';
 import { useDescope } from '../hooks/useDescope';
+import { useTenant } from '../contexts/TenantContext';
 import { Button } from './ui/Button';
 import { ShareModal } from './ShareModal';
 import { SharedUsersList } from './SharedUsersList';
@@ -20,18 +22,92 @@ interface ImageGalleryProps {
 /**
  * Gallery component for displaying user's images
  */
+/**
+ * Fetches shared user details for a single viewer
+ */
+async function fetchSharedUserDetails(
+  viewer: { userId: string; tenantId: string },
+  tenantNames: Record<string, string>
+): Promise<SharedUser> {
+  try {
+    const userInfo = await memberServiceClient.getUserById(viewer.userId);
+    const sharedUser: SharedUser = {
+      userId: viewer.userId,
+      email: userInfo?.email ?? viewer.userId,
+      tenantId: viewer.tenantId,
+    };
+    if (userInfo?.name) {
+      sharedUser.name = userInfo.name;
+    }
+    const tenantName = tenantNames[viewer.tenantId];
+    if (tenantName) {
+      sharedUser.tenantName = tenantName;
+    }
+    return sharedUser;
+  } catch {
+    // Fall back to userId if lookup fails
+    const sharedUser: SharedUser = {
+      userId: viewer.userId,
+      email: viewer.userId,
+      tenantId: viewer.tenantId,
+    };
+    const tenantName = tenantNames[viewer.tenantId];
+    if (tenantName) {
+      sharedUser.tenantName = tenantName;
+    }
+    return sharedUser;
+  }
+}
+
+/**
+ * Fetches shared users for a list of images
+ */
+async function fetchSharedUsersForImages(
+  imageList: Image[],
+  ownership: Record<string, boolean>,
+  tenantNames: Record<string, string>
+): Promise<Record<string, SharedUser[]>> {
+  const sharedUsersChecks = await Promise.all(
+    imageList.map(async (image) => {
+      if (ownership[image.imageId]) {
+        const viewers = await appSyncClient.getImageViewers(image.imageId);
+        const users = await Promise.all(
+          viewers.map((viewer) => fetchSharedUserDetails(viewer, tenantNames))
+        );
+        return { imageId: image.imageId, users };
+      }
+      return { imageId: image.imageId, users: [] };
+    })
+  );
+
+  const sharedMap: Record<string, SharedUser[]> = {};
+  for (const { imageId, users } of sharedUsersChecks) {
+    sharedMap[imageId] = users;
+  }
+  return sharedMap;
+}
+
 export const ImageGallery: FC<ImageGalleryProps> = ({ refreshTrigger }) => {
   const { user } = useDescope();
+  const { selectedTenant, isLoading: isTenantLoading } = useTenant();
   const [images, setImages] = useState<Image[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ownershipMap, setOwnershipMap] = useState<Record<string, boolean>>({});
   const [sharedUsersMap, setSharedUsersMap] = useState<Record<string, SharedUser[]>>({});
   const [shareModalImage, setShareModalImage] = useState<Image | null>(null);
+  const [tenantNameMap, setTenantNameMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const loadImages = async (): Promise<void> => {
-      if (!user) {
+      // Wait for tenant context to finish loading
+      if (isTenantLoading) {
+        return;
+      }
+
+      // If no user or tenant after loading completes, nothing to load
+      if (!user || !selectedTenant) {
+        setIsLoading(false);
         return;
       }
 
@@ -39,10 +115,24 @@ export const ImageGallery: FC<ImageGalleryProps> = ({ refreshTrigger }) => {
       setError(null);
 
       try {
-        const userImages = await imageService.getUserImages(user.userId);
+        // Load tenants for name lookup
+        let tenantNames: Record<string, string> = {};
+        try {
+          if (orgServiceClient.isConfigured()) {
+            const tenantsResult = await orgServiceClient.listTenants(0, 100);
+            tenantNames = Object.fromEntries(
+              tenantsResult.items.map((t) => [t.id, t.name])
+            );
+            setTenantNameMap(tenantNames);
+          }
+        } catch {
+          console.warn('Failed to load tenants for name lookup');
+        }
+
+        const userImages = await imageService.getUserImages(user.userId, selectedTenant.tenantId);
         setImages(userImages);
 
-        // Load ownership and shared users for each image
+        // Load ownership for each image
         const ownershipChecks = await Promise.all(
           userImages.map(async (image) => {
             const isOwner = await appSyncClient.isImageOwner(image.imageId, user.userId);
@@ -51,46 +141,13 @@ export const ImageGallery: FC<ImageGalleryProps> = ({ refreshTrigger }) => {
         );
 
         const ownerMap: Record<string, boolean> = {};
-        ownershipChecks.forEach(({ imageId, isOwner }) => {
+        for (const { imageId, isOwner } of ownershipChecks) {
           ownerMap[imageId] = isOwner;
-        });
+        }
         setOwnershipMap(ownerMap);
 
         // Load shared users for images owned by current user
-        const sharedUsersChecks = await Promise.all(
-          userImages.map(async (image) => {
-            if (ownerMap[image.imageId]) {
-              const viewers = await appSyncClient.getImageViewers(image.imageId);
-              // Extract user ID from "user:{userId}" format and lookup user info
-              const users: SharedUser[] = await Promise.all(
-                viewers.map(async (target) => {
-                  const userId = target.replace('user:', '');
-                  try {
-                    const userInfo = await memberServiceClient.getUserById(userId);
-                    const sharedUser: SharedUser = {
-                      userId,
-                      email: userInfo?.email ?? userId,
-                    };
-                    if (userInfo?.name) {
-                      sharedUser.name = userInfo.name;
-                    }
-                    return sharedUser;
-                  } catch {
-                    // Fall back to userId if lookup fails
-                    return { userId, email: userId };
-                  }
-                })
-              );
-              return { imageId: image.imageId, users };
-            }
-            return { imageId: image.imageId, users: [] };
-          })
-        );
-
-        const sharedMap: Record<string, SharedUser[]> = {};
-        sharedUsersChecks.forEach(({ imageId, users }) => {
-          sharedMap[imageId] = users;
-        });
+        const sharedMap = await fetchSharedUsersForImages(userImages, ownerMap, tenantNames);
         setSharedUsersMap(sharedMap);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load images';
@@ -102,10 +159,11 @@ export const ImageGallery: FC<ImageGalleryProps> = ({ refreshTrigger }) => {
     };
 
     void loadImages();
-  }, [user, refreshTrigger]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.userId, selectedTenant?.tenantId, isTenantLoading, refreshTrigger]);
 
   const handleShareSuccess = (): void => {
-    // Refresh the images and shared users
+    // Refresh the shared users
     if (user) {
       void loadSharedUsers();
     }
@@ -117,40 +175,7 @@ export const ImageGallery: FC<ImageGalleryProps> = ({ refreshTrigger }) => {
     }
 
     try {
-      const sharedUsersChecks = await Promise.all(
-        images.map(async (image) => {
-          if (ownershipMap[image.imageId]) {
-            const viewers = await appSyncClient.getImageViewers(image.imageId);
-            // Lookup user info for each viewer
-            const users: SharedUser[] = await Promise.all(
-              viewers.map(async (target) => {
-                const userId = target.replace('user:', '');
-                try {
-                  const userInfo = await memberServiceClient.getUserById(userId);
-                  const sharedUser: SharedUser = {
-                    userId,
-                    email: userInfo?.email ?? userId,
-                  };
-                  if (userInfo?.name) {
-                    sharedUser.name = userInfo.name;
-                  }
-                  return sharedUser;
-                } catch {
-                  // Fall back to userId if lookup fails
-                  return { userId, email: userId };
-                }
-              })
-            );
-            return { imageId: image.imageId, users };
-          }
-          return { imageId: image.imageId, users: [] };
-        })
-      );
-
-      const sharedMap: Record<string, SharedUser[]> = {};
-      sharedUsersChecks.forEach(({ imageId, users }) => {
-        sharedMap[imageId] = users;
-      });
+      const sharedMap = await fetchSharedUsersForImages(images, ownershipMap, tenantNameMap);
       setSharedUsersMap(sharedMap);
     } catch (err) {
       console.error('Error loading shared users:', err);
@@ -287,7 +312,10 @@ export const ImageGallery: FC<ImageGalleryProps> = ({ refreshTrigger }) => {
           imageId={shareModalImage.imageId}
           imageName={shareModalImage.filename}
           onShareSuccess={handleShareSuccess}
-          existingViewers={(sharedUsersMap[shareModalImage.imageId] ?? []).map((u) => u.userId)}
+          existingViewers={(sharedUsersMap[shareModalImage.imageId] ?? []).map((u) => ({
+            userId: u.userId,
+            tenantId: u.tenantId,
+          }))}
         />
       )}
     </>

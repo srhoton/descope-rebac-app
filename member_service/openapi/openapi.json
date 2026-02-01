@@ -18,6 +18,9 @@
   "tags" : [ {
     "name" : "Members",
     "description" : "Operations for managing Descope members within tenants"
+  }, {
+    "name" : "Users",
+    "description" : "Operations for looking up Descope users"
   } ],
   "paths" : {
     "/tenants/{tenantId}/members" : {
@@ -268,6 +271,54 @@
           }
         }
       }
+    },
+    "/users/{userId}" : {
+      "get" : {
+        "tags" : [ "Users" ],
+        "summary" : "Get user by ID",
+        "description" : "Retrieves basic user info by their Descope user ID",
+        "parameters" : [ {
+          "name" : "userId",
+          "in" : "path",
+          "description" : "Descope user ID",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "User found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserInfo"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "User not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse1"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse1"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components" : {
@@ -285,6 +336,22 @@
             "description" : "Detailed error message",
             "type" : "string",
             "example" : "Member email cannot be empty"
+          }
+        }
+      },
+      "ErrorResponse1" : {
+        "description" : "Error response information",
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "description" : "Error type",
+            "type" : "string",
+            "example" : "User not found"
+          },
+          "message" : {
+            "description" : "Detailed error message",
+            "type" : "string",
+            "example" : "User with ID xyz not found"
           }
         }
       },
@@ -378,6 +445,20 @@
             "description" : "Total number of pages",
             "type" : "integer",
             "example" : 5
+          }
+        }
+      },
+      "UserInfo" : {
+        "type" : "object",
+        "properties" : {
+          "userId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
           }
         }
       }

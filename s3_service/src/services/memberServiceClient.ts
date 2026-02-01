@@ -1,11 +1,12 @@
 /**
  * GraphQL client for Member Service AppSync API
+ * Uses Descope OIDC JWT authentication
  */
 
+import { getAuthToken } from './authTokenProvider';
 import type { PaginatedMembers, UserInfo } from '../types/sharing';
 
-const APPSYNC_MEMBER_URL = import.meta.env['VITE_APPSYNC_MEMBER_ENDPOINT'] as string | undefined;
-const APPSYNC_MEMBER_KEY = import.meta.env['VITE_APPSYNC_MEMBER_API_KEY'] as string | undefined;
+const APPSYNC_MEMBER_URL = import.meta.env['VITE_APPSYNC_MEMBER_ENDPOINT'];
 
 /**
  * Query to list members in a tenant
@@ -43,43 +44,48 @@ const GET_USER_BY_ID_QUERY = `
 
 /**
  * Client for interacting with the Member Service AppSync API
+ * Uses Descope OIDC JWT authentication
  */
 export class MemberServiceClient {
   private readonly apiUrl: string | undefined;
-  private readonly apiKey: string | undefined;
 
-  constructor(apiUrl = APPSYNC_MEMBER_URL, apiKey = APPSYNC_MEMBER_KEY) {
+  constructor(apiUrl = APPSYNC_MEMBER_URL) {
     this.apiUrl = apiUrl;
-    this.apiKey = apiKey;
   }
 
   /**
    * Validates that configuration is present
    */
-  private validateConfig(): { apiUrl: string; apiKey: string } {
-    if (!this.apiUrl || !this.apiKey) {
+  private validateConfig(): { apiUrl: string } {
+    if (!this.apiUrl) {
       throw new Error(
         'Member Service AppSync configuration is missing. ' +
-        'Set VITE_APPSYNC_MEMBER_ENDPOINT and VITE_APPSYNC_MEMBER_API_KEY environment variables to enable sharing.'
+        'Set VITE_APPSYNC_MEMBER_ENDPOINT environment variable to enable sharing.'
       );
     }
-    return { apiUrl: this.apiUrl, apiKey: this.apiKey };
+    return { apiUrl: this.apiUrl };
   }
 
   /**
    * Executes a GraphQL query
+   * Uses Descope session token for authentication
    */
   private async execute<T>(
     query: string,
     variables: Record<string, unknown>
   ): Promise<T> {
-    const { apiUrl, apiKey } = this.validateConfig();
+    const { apiUrl } = this.validateConfig();
+
+    const sessionToken = getAuthToken();
+    if (!sessionToken) {
+      throw new Error('No session token available. User must be authenticated.');
+    }
 
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
+        'Authorization': `Bearer ${sessionToken}`,
       },
       body: JSON.stringify({
         query,
@@ -114,7 +120,7 @@ export class MemberServiceClient {
    * Checks if the member service is configured
    */
   isConfigured(): boolean {
-    return Boolean(this.apiUrl && this.apiKey);
+    return Boolean(this.apiUrl);
   }
 
   /**

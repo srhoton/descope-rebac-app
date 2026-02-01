@@ -66,7 +66,12 @@ resource "aws_cloudwatch_log_group" "appsync_member" {
 # AppSync GraphQL API for Member Service
 resource "aws_appsync_graphql_api" "member" {
   name                = "member-service-api"
-  authentication_type = "API_KEY"
+  authentication_type = "OPENID_CONNECT"
+
+  openid_connect_config {
+    issuer    = "https://api.descope.com/v1/apps/${var.descope_project_id}"
+    client_id = var.descope_project_id
+  }
 
   log_config {
     cloudwatch_logs_role_arn = aws_iam_role.appsync_member.arn
@@ -77,16 +82,6 @@ resource "aws_appsync_graphql_api" "member" {
 
   tags = {
     Name = "member-service-api"
-  }
-}
-
-# API Key for testing (no authentication for now)
-resource "aws_appsync_api_key" "member" {
-  api_id  = aws_appsync_graphql_api.member.id
-  expires = timeadd(timestamp(), "8760h")
-
-  lifecycle {
-    ignore_changes = [expires]
   }
 }
 
@@ -274,6 +269,40 @@ EOF
 EOF
 }
 
+# Resolver for getUserById query
+resource "aws_appsync_resolver" "get_user_by_id" {
+  api_id      = aws_appsync_graphql_api.member.id
+  type        = "Query"
+  field       = "getUserById"
+  data_source = aws_appsync_datasource.member_lambda.name
+
+  request_template = <<EOF
+{
+  "version": "2017-02-28",
+  "operation": "Invoke",
+  "payload": {
+    "httpMethod": "GET",
+    "path": "/users/$util.urlEncode($ctx.args.userId)",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "requestContext": {}
+  }
+}
+EOF
+
+  response_template = <<EOF
+#if($ctx.result.statusCode == 200)
+  $ctx.result.body
+#elseif($ctx.result.statusCode == 404)
+  null
+#else
+  #set($errorBody = $util.parseJson($ctx.result.body))
+  $util.error($errorBody.message, "InternalError")
+#end
+EOF
+}
+
 # Outputs for Member Service AppSync API
 output "appsync_member_api_id" {
   description = "Member Service AppSync API ID"
@@ -285,8 +314,3 @@ output "appsync_member_api_url" {
   value       = aws_appsync_graphql_api.member.uris["GRAPHQL"]
 }
 
-output "appsync_member_api_key" {
-  description = "Member Service AppSync API Key"
-  value       = aws_appsync_api_key.member.key
-  sensitive   = true
-}

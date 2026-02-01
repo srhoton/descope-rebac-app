@@ -13,17 +13,15 @@ interface ProtectedRouteProps {
 /**
  * Wraps routes that require authentication
  * Redirects to internal /login page if user is not authenticated
+ * Tenant selection is handled by Descope flow (sign-up-or-in-fullbay)
  */
 export const ProtectedRoute: FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isSessionLoading } = useSession();
   const navigate = useNavigate();
 
-  console.log('[ProtectedRoute] Render:', { isAuthenticated, isSessionLoading });
-
   useEffect(() => {
     // Only redirect if we're done loading AND not authenticated
     if (!isSessionLoading && !isAuthenticated) {
-      console.log('[ProtectedRoute] Not authenticated, redirecting to /login');
       navigate('/login', { replace: true });
     }
   }, [isAuthenticated, isSessionLoading, navigate]);
@@ -49,6 +47,5 @@ export const ProtectedRoute: FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  console.log('[ProtectedRoute] User is authenticated, rendering children');
   return <>{children}</>;
 };

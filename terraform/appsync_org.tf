@@ -66,7 +66,12 @@ resource "aws_cloudwatch_log_group" "appsync_org" {
 # AppSync GraphQL API for Organization Service
 resource "aws_appsync_graphql_api" "org" {
   name                = "org-service-api"
-  authentication_type = "API_KEY"
+  authentication_type = "OPENID_CONNECT"
+
+  openid_connect_config {
+    issuer    = "https://api.descope.com/v1/apps/${var.descope_project_id}"
+    client_id = var.descope_project_id
+  }
 
   log_config {
     cloudwatch_logs_role_arn = aws_iam_role.appsync_org.arn
@@ -77,16 +82,6 @@ resource "aws_appsync_graphql_api" "org" {
 
   tags = {
     Name = "org-service-api"
-  }
-}
-
-# API Key for testing (no authentication for now)
-resource "aws_appsync_api_key" "org" {
-  api_id  = aws_appsync_graphql_api.org.id
-  expires = timeadd(timestamp(), "8760h")
-
-  lifecycle {
-    ignore_changes = [expires]
   }
 }
 
@@ -285,8 +280,3 @@ output "appsync_org_api_url" {
   value       = aws_appsync_graphql_api.org.uris["GRAPHQL"]
 }
 
-output "appsync_org_api_key" {
-  description = "Organization Service AppSync API Key"
-  value       = aws_appsync_api_key.org.key
-  sensitive   = true
-}

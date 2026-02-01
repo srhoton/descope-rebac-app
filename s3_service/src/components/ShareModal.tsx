@@ -18,7 +18,7 @@ export interface ShareModalProps {
   imageId: string;
   imageName: string;
   onShareSuccess: () => void;
-  existingViewers: string[]; // User IDs that already have access
+  existingViewers: Array<{ userId: string; tenantId: string }>; // Users with access, including tenant context
 }
 
 type Step = 'tenant' | 'user' | 'confirm';
@@ -60,12 +60,11 @@ export const ShareModal: FC<ShareModalProps> = ({
     }
   }, [isOpen]);
 
-  // Load members when tenant is selected
-  useEffect(() => {
+  const handleNextStep = (): void => {
     if (selectedTenant) {
       void loadMembers(selectedTenant.id);
     }
-  }, [selectedTenant]);
+  };
 
   const loadTenants = async (): Promise<void> => {
     setIsLoadingTenants(true);
@@ -89,10 +88,12 @@ export const ShareModal: FC<ShareModalProps> = ({
 
     try {
       const result = await memberServiceClient.listMembers(tenantId);
-      // Filter out members who already have access
-      const availableMembers = result.items.filter(
-        (member) => !existingViewers.includes(member.loginId)
-      );
+      // Filter out members who already have access in this tenant
+      const availableMembers = result.items.filter((member) => {
+        return !existingViewers.some(
+          (viewer) => viewer.userId === member.loginId && viewer.tenantId === tenantId
+        );
+      });
       setMembers(availableMembers);
       setStep('user');
     } catch (err) {
@@ -125,7 +126,7 @@ export const ShareModal: FC<ShareModalProps> = ({
   };
 
   const handleShare = async (): Promise<void> => {
-    if (!selectedMember) {
+    if (!selectedMember || !selectedTenant) {
       return;
     }
 
@@ -133,7 +134,11 @@ export const ShareModal: FC<ShareModalProps> = ({
     setError(null);
 
     try {
-      await appSyncClient.createViewerRelation(imageId, selectedMember.loginId);
+      await appSyncClient.createViewerRelation(
+        imageId,
+        selectedMember.loginId,
+        selectedTenant.id
+      );
       onShareSuccess();
       onClose();
     } catch (err) {
@@ -189,15 +194,21 @@ export const ShareModal: FC<ShareModalProps> = ({
               ) : (
                 <Select
                   options={tenantOptions}
+                  value={selectedTenant?.id ?? ''}
                   onChange={handleTenantSelect}
                   placeholder="Select a tenant"
                   label="Tenant"
                 />
               )}
-              <div className="flex justify-end">
+              <div className="flex justify-end space-x-3">
                 <Button variant="ghost" onClick={onClose}>
                   Cancel
                 </Button>
+                {selectedTenant && (
+                  <Button variant="primary" onClick={handleNextStep} disabled={isLoadingMembers}>
+                    {isLoadingMembers ? 'Loading...' : 'Next'}
+                  </Button>
+                )}
               </div>
             </>
           )}

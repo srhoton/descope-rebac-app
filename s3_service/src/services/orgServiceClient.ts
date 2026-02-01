@@ -1,11 +1,12 @@
 /**
  * GraphQL client for Organization Service AppSync API
+ * Uses Descope OIDC JWT authentication
  */
 
+import { getAuthToken } from './authTokenProvider';
 import type { PaginatedTenants } from '../types/sharing';
 
-const APPSYNC_ORG_URL = import.meta.env['VITE_APPSYNC_ORG_ENDPOINT'] as string | undefined;
-const APPSYNC_ORG_KEY = import.meta.env['VITE_APPSYNC_ORG_API_KEY'] as string | undefined;
+const APPSYNC_ORG_URL = import.meta.env['VITE_APPSYNC_ORG_ENDPOINT'];
 
 /**
  * Query to list all tenants
@@ -27,43 +28,48 @@ const LIST_TENANTS_QUERY = `
 
 /**
  * Client for interacting with the Organization Service AppSync API
+ * Uses Descope OIDC JWT authentication
  */
 export class OrgServiceClient {
   private readonly apiUrl: string | undefined;
-  private readonly apiKey: string | undefined;
 
-  constructor(apiUrl = APPSYNC_ORG_URL, apiKey = APPSYNC_ORG_KEY) {
+  constructor(apiUrl = APPSYNC_ORG_URL) {
     this.apiUrl = apiUrl;
-    this.apiKey = apiKey;
   }
 
   /**
    * Validates that configuration is present
    */
-  private validateConfig(): { apiUrl: string; apiKey: string } {
-    if (!this.apiUrl || !this.apiKey) {
+  private validateConfig(): { apiUrl: string } {
+    if (!this.apiUrl) {
       throw new Error(
         'Org Service AppSync configuration is missing. ' +
-        'Set VITE_APPSYNC_ORG_ENDPOINT and VITE_APPSYNC_ORG_API_KEY environment variables to enable sharing.'
+        'Set VITE_APPSYNC_ORG_ENDPOINT environment variable to enable sharing.'
       );
     }
-    return { apiUrl: this.apiUrl, apiKey: this.apiKey };
+    return { apiUrl: this.apiUrl };
   }
 
   /**
    * Executes a GraphQL query
+   * Uses Descope session token for authentication
    */
   private async execute<T>(
     query: string,
     variables: Record<string, unknown>
   ): Promise<T> {
-    const { apiUrl, apiKey } = this.validateConfig();
+    const { apiUrl } = this.validateConfig();
+
+    const sessionToken = getAuthToken();
+    if (!sessionToken) {
+      throw new Error('No session token available. User must be authenticated.');
+    }
 
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
+        'Authorization': `Bearer ${sessionToken}`,
       },
       body: JSON.stringify({
         query,
@@ -98,7 +104,7 @@ export class OrgServiceClient {
    * Checks if the org service is configured
    */
   isConfigured(): boolean {
-    return Boolean(this.apiUrl && this.apiKey);
+    return Boolean(this.apiUrl);
   }
 
   /**

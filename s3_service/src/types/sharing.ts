@@ -45,11 +45,14 @@ export interface PaginatedMembers {
 
 /**
  * User who has been granted viewer access to an image
+ * Includes tenant context for tenant-scoped sharing
  */
 export interface SharedUser {
   userId: string;
   email: string;
   name?: string;
+  tenantId: string;
+  tenantName?: string;
 }
 
 /**

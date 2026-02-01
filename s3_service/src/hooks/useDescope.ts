@@ -28,21 +28,24 @@ export function useDescope(): UseDescopeResult {
   // Derive isAuthenticated directly from user to avoid race conditions
   const isAuthenticated = !!user;
 
-  const logout = useCallback(async () => {
-    try {
-      // Use Descope SDK logout method
-      await sdk.logout();
-      // Navigate to login page after logout
-      navigate('/login', { replace: true });
-    } catch (error) {
-      console.error('[useDescope] Logout failed:', error);
-      // Navigate to login page even if logout fails
-      navigate('/login', { replace: true });
-    }
+  const logout = useCallback(() => {
+    void (async () => {
+      try {
+        // Use Descope SDK logout method
+        await sdk.logout();
+      } catch (error) {
+        console.error('Logout failed:', error);
+      } finally {
+        // Navigate to login page after logout
+        navigate('/login', { replace: true });
+      }
+    })();
   }, [sdk, navigate]);
 
   const userProfile = useMemo(() => {
-    if (!user) return null;
+    if (!user) {
+      return null;
+    }
     return {
       userId: user.userId,
       ...(user.email !== undefined && { email: user.email }),

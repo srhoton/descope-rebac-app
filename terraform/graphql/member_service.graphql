@@ -29,12 +29,21 @@ type ErrorDetail {
   message: String!
 }
 
+type UserInfo {
+  userId: String!
+  name: String
+  email: String!
+}
+
 type Query {
   # GET /tenants/{tenantId}/members
   listMembers(tenantId: ID!, page: Int = 0, pageSize: Int = 20): PaginatedMembers!
 
   # GET /tenants/{tenantId}/members/{loginId}
   getMember(tenantId: ID!, loginId: String!): Member
+
+  # GET /users/{userId} - Lookup user by Descope userId
+  getUserById(userId: String!): UserInfo
 }
 
 type Mutation {
