@@ -1,0 +1,63 @@
+# Member Service GraphQL Schema
+# Maps to REST API endpoints at /tenants/{tenantId}/members
+
+type Member {
+  loginId: String!
+  name: String
+  email: String!
+  phone: String
+  tenantId: String!
+}
+
+input MemberInput {
+  loginId: String
+  name: String
+  email: String!
+  phone: String
+}
+
+type PaginatedMembers {
+  items: [Member!]!
+  page: Int!
+  pageSize: Int!
+  totalItems: Int!
+  totalPages: Int!
+}
+
+type ErrorDetail {
+  error: String!
+  message: String!
+}
+
+type UserInfo {
+  userId: String!
+  name: String
+  email: String!
+}
+
+type Query {
+  # GET /tenants/{tenantId}/members
+  listMembers(tenantId: ID!, page: Int = 0, pageSize: Int = 20): PaginatedMembers!
+
+  # GET /tenants/{tenantId}/members/{loginId}
+  getMember(tenantId: ID!, loginId: String!): Member
+
+  # GET /users/{userId} - Lookup user by Descope userId
+  getUserById(userId: String!): UserInfo
+}
+
+type Mutation {
+  # POST /tenants/{tenantId}/members
+  createMember(tenantId: ID!, input: MemberInput!): Member!
+
+  # PUT /tenants/{tenantId}/members/{loginId}
+  updateMember(tenantId: ID!, loginId: String!, input: MemberInput!): Member!
+
+  # DELETE /tenants/{tenantId}/members/{loginId}
+  deleteMember(tenantId: ID!, loginId: String!): Boolean!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}

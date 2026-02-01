@@ -1,0 +1,61 @@
+# ReBac Service GraphQL Schema
+# Maps to REST API endpoints at /relations
+
+type RelationTuple {
+  resource: String!
+  relationDefinition: String!
+  namespace: String!
+  target: String!
+}
+
+input RelationTupleInput {
+  resource: String!
+  relationDefinition: String!
+  namespace: String!
+  target: String!
+}
+
+input RelationRequest {
+  relations: [RelationTupleInput!]!
+}
+
+type RelationsResponse {
+  relations: [RelationTuple!]!
+}
+
+type TargetsResponse {
+  targets: [String!]!
+}
+
+type SuccessResponse {
+  message: String!
+}
+
+type ErrorDetail {
+  error: String!
+  message: String!
+}
+
+type Query {
+  # GET /relations/resource/{resourceId}
+  getResourceRelations(resourceId: String!): RelationsResponse!
+
+  # GET /relations/target/{targetId}
+  getTargetAccess(targetId: String!): RelationsResponse!
+
+  # GET /relations/who-can-access?namespace=X&relationDefinition=Y&resource=Z
+  whoCanAccess(namespace: String!, relationDefinition: String!, resource: String!): TargetsResponse!
+}
+
+type Mutation {
+  # POST /relations
+  createRelations(input: RelationRequest!): SuccessResponse!
+
+  # DELETE /relations
+  deleteRelations(input: RelationRequest!): Boolean!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}

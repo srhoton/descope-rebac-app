@@ -1,0 +1,178 @@
+/**
+ * Service for handling image upload and download operations
+ */
+
+import type {
+  DownloadUrlResponse,
+  Image,
+  UploadUrlRequest,
+  UploadUrlResponse,
+} from '../types/image';
+import { appSyncClient } from './appsyncClient';
+
+const API_BASE_URL = import.meta.env['VITE_API_ENDPOINT'];
+
+if (!API_BASE_URL) {
+  throw new Error('VITE_API_ENDPOINT is missing from environment variables');
+}
+
+/**
+ * Service for managing image uploads and downloads
+ */
+export class ImageService {
+  private readonly apiBaseUrl: string;
+
+  constructor(apiBaseUrl = API_BASE_URL) {
+    this.apiBaseUrl = apiBaseUrl;
+  }
+
+  /**
+   * Generates a presigned URL for uploading an image
+   */
+  async generateUploadUrl(
+    request: UploadUrlRequest
+  ): Promise<UploadUrlResponse> {
+    const response = await fetch(`${this.apiBaseUrl}/upload-url`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = (await response.json()) as { message?: string };
+      throw new Error(error.message ?? 'Failed to generate upload URL');
+    }
+
+    return (await response.json()) as UploadUrlResponse;
+  }
+
+  /**
+   * Uploads an image file to S3 using a presigned URL
+   */
+  async uploadImage(file: File, presignedUrl: string): Promise<void> {
+    const response = await fetch(presignedUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type,
+      },
+      body: file,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload image to S3');
+    }
+  }
+
+  /**
+   * Generates a presigned URL for downloading an image
+   */
+  async generateDownloadUrl(
+    imageId: string,
+    userId: string
+  ): Promise<DownloadUrlResponse> {
+    const params = new URLSearchParams({
+      imageId,
+      userId,
+    });
+
+    const response = await fetch(
+      `${this.apiBaseUrl}/download-url?${params.toString()}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = (await response.json()) as { message?: string };
+      throw new Error(error.message ?? 'Failed to generate download URL');
+    }
+
+    return (await response.json()) as DownloadUrlResponse;
+  }
+
+  /**
+   * Gets all images accessible by a user (owned or shared with them)
+   * For shared images, only includes those shared to the current tenant
+   */
+  async getUserImages(userId: string, currentTenantId: string): Promise<Image[]> {
+    try {
+      // Get all relations for the user from ReBaC (both owner and viewer for current tenant)
+      const { relations } = await appSyncClient.getTargetAccessWithTenant(userId, currentTenantId);
+
+      // Get image access info including owner userIds
+      const imageOwnerMap = await appSyncClient.getImageAccessInfo(userId, relations, currentTenantId);
+
+      // Generate download URLs for each image using the owner's userId
+      const images = await Promise.all(
+        Array.from(imageOwnerMap.entries()).map(async ([imageId, ownerId]) => {
+          try {
+            // Use the owner's userId to construct the correct S3 path
+            const downloadUrlData = await this.generateDownloadUrl(
+              imageId,
+              ownerId
+            );
+
+            // Extract filename from S3 key
+            const filename = downloadUrlData.s3Key.split('/').pop() ?? imageId;
+
+            const image: Image = {
+              imageId,
+              s3Key: downloadUrlData.s3Key,
+              filename,
+              contentType: 'image/jpeg', // Default, would need metadata API to get actual type
+              userId: ownerId, // Store the owner's userId
+              uploadedAt: new Date().toISOString(), // Would need metadata API for actual date
+              downloadUrl: downloadUrlData.downloadUrl,
+            };
+
+            return image;
+          } catch (error) {
+            console.error(`Failed to get download URL for image ${imageId}:`, error);
+            return null;
+          }
+        })
+      );
+
+      // Filter out any failed image fetches
+      return images.filter((img): img is Image => img !== null);
+    } catch (error) {
+      console.error('Failed to get user images:', error);
+      throw new Error('Failed to load images');
+    }
+  }
+
+  /**
+   * Complete image upload process: get presigned URL, upload file, create ReBaC relation
+   */
+  async completeImageUpload(
+    file: File,
+    userId: string
+  ): Promise<{ imageId: string; s3Key: string }> {
+    // Step 1: Generate presigned upload URL
+    const uploadUrlData = await this.generateUploadUrl({
+      userId,
+      filename: file.name,
+      contentType: file.type,
+    });
+
+    // Step 2: Upload the file to S3
+    await this.uploadImage(file, uploadUrlData.uploadUrl);
+
+    // Step 3: Create ownership relation in ReBaC
+    // Extract the filename from s3Key (includes extension) for proper lookup later
+    const imageFilename = uploadUrlData.s3Key.split('/').pop() ?? uploadUrlData.imageId;
+    await appSyncClient.createImageOwnership(imageFilename, userId);
+
+    return {
+      imageId: imageFilename,
+      s3Key: uploadUrlData.s3Key,
+    };
+  }
+}
+
+export const imageService = new ImageService();
