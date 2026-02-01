@@ -1,0 +1,12 @@
+Session prompts:
+1. User continued work on code quality issues from previous session
+2. User asked to build, plan, and deploy all changed code
+3. User asked to commit, add git notes, push, and create PR
+
+Key changes made:
+- Fixed DescopeClient mocking issues in test environment using @DefaultBean and MockDescopeClientProducer
+- Added GlobalExceptionHandler and ValidationExceptionHandler for centralized error handling
+- Added custom exceptions (ResourceNotFoundException, MemberNotFoundException)
+- Added Bean Validation annotations to request models
+- Added JaCoCo for code coverage
+- All services built and deployed successfully via Terraform
