@@ -1,0 +1,29 @@
+Session Prompts:
+
+1. User: "Ok. Please have the adr-compliance-reviewer agent analyze this repository for compliance with Fullbay's accepted ADRs..."
+   - Ran ADR compliance review
+   - Identified ADR-005 (Zustand) at 60% compliance
+   - Identified ADR-001 documentation needed
+
+2. User: "fix address actions 1 and 3."
+   - Implemented Zustand store for tenant state management
+   - Created ADR-001 non-applicability documentation
+   - Refactored TenantContext to use Zustand store
+   - Added comprehensive tests for tenant store
+
+3. User: "Ok. please have the code-quality-reviewer agent review this code for me."
+   - Ran code quality review
+   - Identified ESLint issues: curly braces, nullish coalescing, unsafe member access
+
+4. User: "yes fix the critical issues"
+   - Fixed all critical ESLint errors
+   - Added missing ESLint plugins to host-app
+   - Fixed import order issues with vi.mock hoisting
+
+5. User: "ok, can you redeploy everything and troubleshoot any issues?"
+   - Deployed s3_service to S3 and invalidated CloudFront E37EQXE9R2VJIM
+   - Deployed host-app to S3 and invalidated CloudFront E2BRNMAEQYWQ5U
+   - Verified both services return HTTP 200
+
+6. User: "trueup" (commit, add notes, push, create PR)
+   - Current commit with full description
