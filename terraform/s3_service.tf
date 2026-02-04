@@ -27,6 +27,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "s3_service" {
     id     = "delete-old-versions"
     status = "Enabled"
 
+    filter {}
+
     noncurrent_version_expiration {
       noncurrent_days = 30
     }
@@ -35,6 +37,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "s3_service" {
   rule {
     id     = "delete-incomplete-multipart-uploads"
     status = "Enabled"
+
+    filter {}
 
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
@@ -86,9 +90,44 @@ resource "aws_cloudfront_origin_access_control" "s3_service" {
   signing_protocol                  = "sigv4"
 }
 
-# CloudFront response headers policy for security headers
+# CloudFront response headers policy for security headers and CORS (module federation)
 resource "aws_cloudfront_response_headers_policy" "s3_service" {
   name = "${var.environment}-s3-service-security-headers"
+
+  # CORS configuration for module federation
+  # Allows the host app to load federated modules from this service
+  cors_config {
+    access_control_allow_credentials = false
+
+    # Restrict to only headers needed for module federation and API requests
+    access_control_allow_headers {
+      items = ["Content-Type", "Accept", "Authorization", "X-Requested-With"]
+    }
+
+    access_control_allow_methods {
+      items = ["GET", "HEAD", "OPTIONS"]
+    }
+
+    # Include localhost origins only when enable_localhost_cors is true (non-production)
+    access_control_allow_origins {
+      items = var.enable_localhost_cors ? [
+        "https://${var.host_app_domain_name}",
+        "https://${var.s3_service_domain_name}",
+        "http://localhost:3000",
+        "http://localhost:3002"
+      ] : [
+        "https://${var.host_app_domain_name}",
+        "https://${var.s3_service_domain_name}"
+      ]
+    }
+
+    access_control_expose_headers {
+      items = ["ETag"]
+    }
+
+    access_control_max_age_sec = 3600
+    origin_override            = true
+  }
 
   security_headers_config {
     content_type_options {
