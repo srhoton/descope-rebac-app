@@ -99,20 +99,25 @@ resource "aws_cloudfront_response_headers_policy" "s3_service" {
   cors_config {
     access_control_allow_credentials = false
 
+    # Restrict to only headers needed for module federation and API requests
     access_control_allow_headers {
-      items = ["*"]
+      items = ["Content-Type", "Accept", "Authorization", "X-Requested-With"]
     }
 
     access_control_allow_methods {
       items = ["GET", "HEAD", "OPTIONS"]
     }
 
+    # Include localhost origins only when enable_localhost_cors is true (non-production)
     access_control_allow_origins {
-      items = [
+      items = var.enable_localhost_cors ? [
         "https://${var.host_app_domain_name}",
         "https://${var.s3_service_domain_name}",
         "http://localhost:3000",
         "http://localhost:3002"
+      ] : [
+        "https://${var.host_app_domain_name}",
+        "https://${var.s3_service_domain_name}"
       ]
     }
 

@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import federation from '@originjs/vite-plugin-federation';
+import pkg from './package.json';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -8,6 +9,12 @@ export default defineConfig(({ mode }) => {
   // Use environment variable or default to production URL
   const s3ServiceUrl =
     env.VITE_S3_SERVICE_URL || 'https://descope-s3.sb.fullbay.com';
+
+  // Extract @descope/react-sdk version from package.json to keep versions in sync
+  const descopeVersion = (pkg.dependencies as Record<string, string>)['@descope/react-sdk'].replace(
+    /^\^/,
+    ''
+  );
 
   return {
     plugins: [
@@ -40,8 +47,8 @@ export default defineConfig(({ mode }) => {
           '@descope/react-sdk': {
             singleton: true,
             requiredVersion: '^2.0.0',
-            // Workaround: specify version directly to avoid package.json resolution
-            version: '2.26.2',
+            // Read version from package.json to keep federation in sync with installed version
+            version: descopeVersion,
           },
           zustand: {
             singleton: true,

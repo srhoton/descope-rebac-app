@@ -18,6 +18,9 @@ const RemoteStandaloneImagePage = lazy(() => import('s3ImageService/StandaloneIm
  * The component is wrapped in RemoteComponentWrapper to handle loading
  * and error states gracefully when the federated module is being fetched.
  *
+ * Uses routerType="none" because the host app already provides BrowserRouter.
+ * Uses hideChrome={true} because the host app provides its own Navigation header.
+ *
  * @example
  * ```tsx
  * <Route
@@ -29,14 +32,6 @@ const RemoteStandaloneImagePage = lazy(() => import('s3ImageService/StandaloneIm
  *   }
  * />
  * ```
- */
-/**
- * Full standalone page component that includes all required providers.
- * Works independently with complete image management experience including
- * upload, gallery view, and image sharing functionality.
- *
- * Uses routerType="none" because the host app already provides BrowserRouter.
- * Uses hideChrome={true} because the host app provides its own Navigation header.
  */
 export const FullImagePage: FC = () => {
   return (

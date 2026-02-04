@@ -12,6 +12,33 @@ import { useTenantStore, type Tenant } from '../stores/tenantStore';
 // Re-export Tenant type for backward compatibility
 export type { Tenant } from '../stores/tenantStore';
 
+// User tenant type from Descope SDK
+interface DescopeUserTenant {
+  tenantId: string;
+  tenantName?: string;
+  roleNames?: string[];
+}
+
+/**
+ * Extracts and maps tenant data from Descope user object to Tenant array
+ *
+ * Uses conditional property assignment to satisfy TypeScript's exactOptionalPropertyTypes
+ */
+function extractTenantsFromUser(
+  userTenants: DescopeUserTenant[] | undefined | null
+): Tenant[] {
+  return (userTenants ?? []).map((t) => {
+    const tenant: Tenant = { tenantId: t.tenantId };
+    if (t.tenantName) {
+      tenant.tenantName = t.tenantName;
+    }
+    if (t.roleNames) {
+      tenant.roleNames = t.roleNames;
+    }
+    return tenant;
+  });
+}
+
 /**
  * Decode a JWT token to extract claims (without verification)
  */
@@ -60,21 +87,8 @@ export const TenantProvider: FC<TenantProviderProps> = ({ children }) => {
   const setSelectedTenant = useTenantStore((state) => state.setSelectedTenant);
   const setInitialized = useTenantStore((state) => state.setInitialized);
 
-  // Extract tenants from user object
-  const tenants: Tenant[] = (
-    user?.userTenants ?? []
-  ).map(
-    (t: { tenantId: string; tenantName?: string; roleNames?: string[] }) => {
-      const tenant: Tenant = { tenantId: t.tenantId };
-      if (t.tenantName) {
-        tenant.tenantName = t.tenantName;
-      }
-      if (t.roleNames) {
-        tenant.roleNames = t.roleNames;
-      }
-      return tenant;
-    }
-  );
+  // Extract tenants from user object using shared helper
+  const tenants = extractTenantsFromUser(user?.userTenants as DescopeUserTenant[] | undefined);
 
   // Sync JWT's dct (Descope current tenant) claim to Zustand store
   useEffect(() => {
@@ -123,8 +137,16 @@ export const TenantProvider: FC<TenantProviderProps> = ({ children }) => {
  * This hook combines Zustand store state with Descope user data
  * to provide a complete tenant context.
  *
+ * IMPORTANT: While the Zustand store is global and can be accessed anywhere,
+ * this hook must be used within a Descope AuthProvider context because it
+ * relies on the useUser hook from @descope/react-sdk.
+ *
+ * For proper tenant data synchronization (reading dct claim from JWT,
+ * auto-selecting single tenant, etc.), ensure TenantProvider is also
+ * rendered in the component tree above this hook's usage.
+ *
  * @returns TenantContextValue with tenants, selectedTenant, and actions
- * @throws Error if used outside of TenantProvider (due to Descope hook requirements)
+ * @throws Error if useUser hook fails (typically when used outside AuthProvider)
  */
 export function useTenant(): TenantContextValue {
   const { user, isUserLoading } = useUser();
@@ -134,21 +156,8 @@ export function useTenant(): TenantContextValue {
   const initialized = useTenantStore((state) => state.initialized);
   const setSelectedTenant = useTenantStore((state) => state.setSelectedTenant);
 
-  // Extract tenants from user object
-  const tenants: Tenant[] = (
-    user?.userTenants ?? []
-  ).map(
-    (t: { tenantId: string; tenantName?: string; roleNames?: string[] }) => {
-      const tenant: Tenant = { tenantId: t.tenantId };
-      if (t.tenantName) {
-        tenant.tenantName = t.tenantName;
-      }
-      if (t.roleNames) {
-        tenant.roleNames = t.roleNames;
-      }
-      return tenant;
-    }
-  );
+  // Extract tenants from user object using shared helper
+  const tenants = extractTenantsFromUser(user?.userTenants as DescopeUserTenant[] | undefined);
 
   // Determine if tenant selection is needed
   const needsTenantSelection =

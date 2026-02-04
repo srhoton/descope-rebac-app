@@ -38,13 +38,13 @@ describe('getUserDisplayName', () => {
     expect(getUserDisplayName(user)).toBe('user-123');
   });
 
-  it('should return userId when name is empty string', () => {
+  it('should return empty string when name is empty (nullish coalescing does not treat empty string as fallback)', () => {
     const user: DisplayableUser = {
       userId: 'user-123',
       name: '',
     };
-    // Empty string is falsy, but ?? only checks for null/undefined
-    // so empty string will be returned
+    // The ?? operator only treats null/undefined as fallback triggers,
+    // so an empty string name is returned as-is without falling back to userId
     expect(getUserDisplayName(user)).toBe('');
   });
 

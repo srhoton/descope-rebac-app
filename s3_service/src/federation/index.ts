@@ -62,6 +62,7 @@ export type {
 
 // Export page components
 export { ImageUploadPage } from '../pages/ImageUploadPage';
+export type { ImageUploadPageProps } from '../pages/ImageUploadPage';
 
 // Export standalone version
 export { StandaloneImagePage } from './StandaloneImagePage';

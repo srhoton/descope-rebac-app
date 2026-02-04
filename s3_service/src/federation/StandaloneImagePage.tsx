@@ -21,8 +21,8 @@ export interface StandaloneImagePageProps {
   useEmbeddedAuth?: boolean;
   /**
    * Router type to use.
-   * 'browser' - Uses BrowserRouter (default, changes URL)
-   * 'memory' - Uses MemoryRouter (doesn't change URL, better for federation)
+   * 'memory' - Uses MemoryRouter (default, doesn't change URL, better for federation)
+   * 'browser' - Uses BrowserRouter (changes URL)
    * 'none' - Expects host to provide router (use when host already provides BrowserRouter)
    */
   routerType?: 'browser' | 'memory' | 'none';

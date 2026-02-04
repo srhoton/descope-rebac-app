@@ -77,6 +77,6 @@ If Fullbay ID format compliance becomes required in the future, the following ap
 
 ## Review History
 
-| Date | Reviewer | Outcome |
-|------|----------|---------|
-| 2026-02-04 | ADR Compliance Reviewer | Confirmed Not Applicable |
+| Date | Reviewer | Outcome | Notes |
+|------|----------|---------|-------|
+| 2026-02-04 | ADR Compliance Reviewer | Confirmed Not Applicable | Initial review during feat/idp-service implementation |

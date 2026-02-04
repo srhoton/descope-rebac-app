@@ -97,3 +97,10 @@ variable "descope_project_id" {
   type        = string
   default     = "P38a668rJn8AUs65nESCiJqendj6"
 }
+
+# CORS Configuration
+variable "enable_localhost_cors" {
+  description = "Enable localhost origins in CORS for development (should be false in production)"
+  type        = bool
+  default     = true
+}

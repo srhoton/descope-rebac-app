@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import federation from '@originjs/vite-plugin-federation';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     federation({
@@ -82,7 +82,7 @@ export default defineConfig({
 
   build: {
     target: 'esnext',
-    minify: false, // Easier debugging during development
+    minify: mode === 'production', // Enable minification for production builds
     cssCodeSplit: false, // Keep CSS in single file for federation
     sourcemap: true,
     rollupOptions: {
@@ -107,4 +107,4 @@ export default defineConfig({
       statements: 80,
     },
   },
-});
+}));

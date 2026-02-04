@@ -35,14 +35,14 @@ const DefaultErrorFallback: FC<FallbackProps> = ({ error, resetErrorBoundary }) 
     >
       <h3 className="text-red-800 font-medium">Failed to load remote component</h3>
       <p className="text-red-600 text-sm mt-1">{errorMessage}</p>
-    <button
-      onClick={resetErrorBoundary}
-      className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
-      aria-label="Retry loading the component"
-    >
-      Retry
-    </button>
-  </div>
+      <button
+        onClick={resetErrorBoundary}
+        className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+        aria-label="Retry loading the component"
+      >
+        Retry
+      </button>
+    </div>
   );
 };
 
