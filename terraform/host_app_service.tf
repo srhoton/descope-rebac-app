@@ -1,18 +1,19 @@
-# S3 Service Frontend Infrastructure
+# Host Application Infrastructure
 # S3 bucket for static website hosting, CloudFront distribution, and Route53 DNS
+# This hosts the module federation host app at descope-main.sb.fullbay.com
 
 # S3 bucket for static website hosting
-resource "aws_s3_bucket" "s3_service" {
-  bucket = "${var.environment}-descope-s3-service"
+resource "aws_s3_bucket" "host_app" {
+  bucket = "${var.environment}-descope-host-app"
 
   tags = {
-    Name = "${var.environment}-s3-service"
+    Name = "${var.environment}-host-app"
   }
 }
 
 # Enable versioning for rollback capability
-resource "aws_s3_bucket_versioning" "s3_service" {
-  bucket = aws_s3_bucket.s3_service.id
+resource "aws_s3_bucket_versioning" "host_app" {
+  bucket = aws_s3_bucket.host_app.id
 
   versioning_configuration {
     status = "Enabled"
@@ -20,8 +21,8 @@ resource "aws_s3_bucket_versioning" "s3_service" {
 }
 
 # Configure lifecycle policy to clean up old versions
-resource "aws_s3_bucket_lifecycle_configuration" "s3_service" {
-  bucket = aws_s3_bucket.s3_service.id
+resource "aws_s3_bucket_lifecycle_configuration" "host_app" {
+  bucket = aws_s3_bucket.host_app.id
 
   rule {
     id     = "delete-old-versions"
@@ -47,8 +48,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "s3_service" {
 }
 
 # Block public access at the bucket level (CloudFront will access via OAC)
-resource "aws_s3_bucket_public_access_block" "s3_service" {
-  bucket = aws_s3_bucket.s3_service.id
+resource "aws_s3_bucket_public_access_block" "host_app" {
+  bucket = aws_s3_bucket.host_app.id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -56,9 +57,20 @@ resource "aws_s3_bucket_public_access_block" "s3_service" {
   restrict_public_buckets = true
 }
 
+# Enable server-side encryption
+resource "aws_s3_bucket_server_side_encryption_configuration" "host_app" {
+  bucket = aws_s3_bucket.host_app.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
 # S3 bucket policy to allow CloudFront OAC access
-resource "aws_s3_bucket_policy" "s3_service" {
-  bucket = aws_s3_bucket.s3_service.id
+resource "aws_s3_bucket_policy" "host_app" {
+  bucket = aws_s3_bucket.host_app.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -70,10 +82,10 @@ resource "aws_s3_bucket_policy" "s3_service" {
           Service = "cloudfront.amazonaws.com"
         }
         Action   = "s3:GetObject"
-        Resource = "${aws_s3_bucket.s3_service.arn}/*"
+        Resource = "${aws_s3_bucket.host_app.arn}/*"
         Condition = {
           StringEquals = {
-            "AWS:SourceArn" = aws_cloudfront_distribution.s3_service.arn
+            "AWS:SourceArn" = aws_cloudfront_distribution.host_app.arn
           }
         }
       }
@@ -82,47 +94,17 @@ resource "aws_s3_bucket_policy" "s3_service" {
 }
 
 # CloudFront Origin Access Control for S3
-resource "aws_cloudfront_origin_access_control" "s3_service" {
-  name                              = "${var.environment}-s3-service-oac"
-  description                       = "OAC for S3 Service S3 bucket"
+resource "aws_cloudfront_origin_access_control" "host_app" {
+  name                              = "${var.environment}-host-app-oac"
+  description                       = "OAC for Host App S3 bucket"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
 }
 
-# CloudFront response headers policy for security headers and CORS (module federation)
-resource "aws_cloudfront_response_headers_policy" "s3_service" {
-  name = "${var.environment}-s3-service-security-headers"
-
-  # CORS configuration for module federation
-  # Allows the host app to load federated modules from this service
-  cors_config {
-    access_control_allow_credentials = false
-
-    access_control_allow_headers {
-      items = ["*"]
-    }
-
-    access_control_allow_methods {
-      items = ["GET", "HEAD", "OPTIONS"]
-    }
-
-    access_control_allow_origins {
-      items = [
-        "https://${var.host_app_domain_name}",
-        "https://${var.s3_service_domain_name}",
-        "http://localhost:3000",
-        "http://localhost:3002"
-      ]
-    }
-
-    access_control_expose_headers {
-      items = ["ETag"]
-    }
-
-    access_control_max_age_sec = 3600
-    origin_override            = true
-  }
+# CloudFront response headers policy for security headers
+resource "aws_cloudfront_response_headers_policy" "host_app" {
+  name = "${var.environment}-host-app-security-headers"
 
   security_headers_config {
     content_type_options {
@@ -162,25 +144,25 @@ resource "aws_cloudfront_response_headers_policy" "s3_service" {
   }
 }
 
-# CloudFront distribution for S3 service
-resource "aws_cloudfront_distribution" "s3_service" {
+# CloudFront distribution for host app
+resource "aws_cloudfront_distribution" "host_app" {
   enabled             = true
   is_ipv6_enabled     = true
   default_root_object = "index.html"
-  comment             = "${var.environment} S3 Service"
+  comment             = "${var.environment} Host Application (Module Federation Host)"
   price_class         = "PriceClass_100"
-  aliases             = [var.s3_service_domain_name]
+  aliases             = [var.host_app_domain_name]
 
   origin {
-    domain_name              = aws_s3_bucket.s3_service.bucket_regional_domain_name
-    origin_id                = "S3-${aws_s3_bucket.s3_service.id}"
-    origin_access_control_id = aws_cloudfront_origin_access_control.s3_service.id
+    domain_name              = aws_s3_bucket.host_app.bucket_regional_domain_name
+    origin_id                = "S3-${aws_s3_bucket.host_app.id}"
+    origin_access_control_id = aws_cloudfront_origin_access_control.host_app.id
   }
 
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD", "OPTIONS"]
-    target_origin_id = "S3-${aws_s3_bucket.s3_service.id}"
+    target_origin_id = "S3-${aws_s3_bucket.host_app.id}"
 
     forwarded_values {
       query_string = false
@@ -196,7 +178,7 @@ resource "aws_cloudfront_distribution" "s3_service" {
     default_ttl                = 3600
     max_ttl                    = 86400
     compress                   = true
-    response_headers_policy_id = aws_cloudfront_response_headers_policy.s3_service.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.host_app.id
   }
 
   # Custom error response for SPA routing
@@ -204,14 +186,14 @@ resource "aws_cloudfront_distribution" "s3_service" {
     error_code            = 404
     response_code         = 200
     response_page_path    = "/index.html"
-    error_caching_min_ttl = 300
+    error_caching_min_ttl = 0
   }
 
   custom_error_response {
     error_code            = 403
     response_code         = 200
     response_page_path    = "/index.html"
-    error_caching_min_ttl = 300
+    error_caching_min_ttl = 0
   }
 
   restrictions {
@@ -221,73 +203,52 @@ resource "aws_cloudfront_distribution" "s3_service" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate_validation.s3_service.certificate_arn
+    acm_certificate_arn      = aws_acm_certificate_validation.host_app.certificate_arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = {
-    Name = "${var.environment}-s3-service"
+    Name = "${var.environment}-host-app"
   }
 
   depends_on = [
-    aws_acm_certificate_validation.s3_service
+    aws_acm_certificate_validation.host_app
   ]
 }
 
 # Route53 A record for custom domain
-resource "aws_route53_record" "s3_service" {
+resource "aws_route53_record" "host_app" {
   zone_id = data.aws_route53_zone.sb_fullbay.zone_id
-  name    = var.s3_service_domain_name
+  name    = var.host_app_domain_name
   type    = "A"
 
   alias {
-    name                   = aws_cloudfront_distribution.s3_service.domain_name
-    zone_id                = aws_cloudfront_distribution.s3_service.hosted_zone_id
+    name                   = aws_cloudfront_distribution.host_app.domain_name
+    zone_id                = aws_cloudfront_distribution.host_app.hosted_zone_id
     evaluate_target_health = false
   }
 }
 
 # Route53 AAAA record for IPv6 support
-resource "aws_route53_record" "s3_service_ipv6" {
+resource "aws_route53_record" "host_app_ipv6" {
   zone_id = data.aws_route53_zone.sb_fullbay.zone_id
-  name    = var.s3_service_domain_name
+  name    = var.host_app_domain_name
   type    = "AAAA"
 
   alias {
-    name                   = aws_cloudfront_distribution.s3_service.domain_name
-    zone_id                = aws_cloudfront_distribution.s3_service.hosted_zone_id
+    name                   = aws_cloudfront_distribution.host_app.domain_name
+    zone_id                = aws_cloudfront_distribution.host_app.hosted_zone_id
     evaluate_target_health = false
   }
 }
 
 # CloudWatch log group for CloudFront distribution
-resource "aws_cloudwatch_log_group" "s3_cloudfront" {
-  name              = "/aws/cloudfront/${var.environment}-s3-service"
+resource "aws_cloudwatch_log_group" "host_app_cloudfront" {
+  name              = "/aws/cloudfront/${var.environment}-host-app"
   retention_in_days = var.log_retention_days
 
   tags = {
-    Name = "${var.environment}-s3-cloudfront-logs"
+    Name = "${var.environment}-host-app-cloudfront-logs"
   }
-}
-
-# Outputs for S3 Service
-output "s3_service_bucket_name" {
-  description = "S3 Service bucket name"
-  value       = aws_s3_bucket.s3_service.id
-}
-
-output "s3_service_cloudfront_domain" {
-  description = "S3 Service CloudFront distribution domain"
-  value       = aws_cloudfront_distribution.s3_service.domain_name
-}
-
-output "s3_service_cloudfront_id" {
-  description = "S3 Service CloudFront distribution ID"
-  value       = aws_cloudfront_distribution.s3_service.id
-}
-
-output "s3_service_url" {
-  description = "S3 Service URL"
-  value       = "https://${var.s3_service_domain_name}"
 }

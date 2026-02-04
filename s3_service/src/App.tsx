@@ -20,8 +20,9 @@ if (!DESCOPE_PROJECT_ID) {
 /**
  * Component that bridges React's useSession hook with the service layer.
  * Sets up the token getter so services can access the session token.
+ * Exported for use in federation standalone components.
  */
-const AuthTokenBridge: FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthTokenBridge: FC<{ children: ReactNode }> = ({ children }) => {
   const { sessionToken } = useSession();
 
   // Update the token getter whenever session changes

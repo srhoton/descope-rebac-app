@@ -15,8 +15,15 @@ import { Button } from './ui/Button';
 import { ShareModal } from './ShareModal';
 import { SharedUsersList } from './SharedUsersList';
 
-interface ImageGalleryProps {
+export interface ImageGalleryProps {
+  /** Trigger to refresh the gallery (increment to reload) */
   refreshTrigger: number;
+  /** Optional callback when an image is deleted */
+  onImageDeleted?: (imageId: string) => void;
+  /** Optional callback when sharing changes */
+  onSharingChanged?: (imageId: string) => void;
+  /** Optional CSS class name */
+  className?: string;
 }
 
 /**

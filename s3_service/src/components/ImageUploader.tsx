@@ -14,8 +14,17 @@ function isAllowedImageType(type: string): type is AllowedImageType {
   return (ALLOWED_IMAGE_TYPES as readonly string[]).includes(type);
 }
 
-interface ImageUploaderProps {
+export interface ImageUploaderProps {
+  /** Callback when upload completes successfully */
   onUploadComplete: () => void;
+  /** Optional callback when upload fails */
+  onUploadError?: (error: Error) => void;
+  /** Maximum file size in bytes (default: 10MB from MAX_FILE_SIZE) */
+  maxFileSize?: number;
+  /** Accepted file types (default: ALLOWED_IMAGE_TYPES) */
+  acceptedTypes?: string[];
+  /** Optional CSS class name */
+  className?: string;
 }
 
 /**

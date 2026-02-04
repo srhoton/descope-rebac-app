@@ -68,3 +68,40 @@ output "idp_certificate_arn" {
   description = "ARN of the IDP service ACM certificate"
   value       = aws_acm_certificate.idp_service.arn
 }
+
+# Host Application Outputs
+output "host_app_bucket_name" {
+  description = "Host application S3 bucket name"
+  value       = aws_s3_bucket.host_app.id
+}
+
+output "host_app_bucket_arn" {
+  description = "Host application S3 bucket ARN"
+  value       = aws_s3_bucket.host_app.arn
+}
+
+output "host_app_cloudfront_distribution_id" {
+  description = "Host application CloudFront distribution ID"
+  value       = aws_cloudfront_distribution.host_app.id
+}
+
+output "host_app_cloudfront_domain" {
+  description = "Host application CloudFront distribution domain"
+  value       = aws_cloudfront_distribution.host_app.domain_name
+}
+
+output "host_app_url" {
+  description = "Host application URL"
+  value       = "https://${var.host_app_domain_name}"
+}
+
+output "host_app_certificate_arn" {
+  description = "ARN of the host application ACM certificate"
+  value       = aws_acm_certificate.host_app.arn
+}
+
+# Module Federation URLs
+output "remote_entry_url" {
+  description = "URL of the remote entry point for module federation (s3_service)"
+  value       = "https://${var.s3_service_domain_name}/assets/remoteEntry.js"
+}

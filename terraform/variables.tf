@@ -84,6 +84,13 @@ variable "s3_service_domain_name" {
   default     = "descope-s3.sb.fullbay.com"
 }
 
+# Host Application Variables
+variable "host_app_domain_name" {
+  description = "Domain name for the host application (module federation host)"
+  type        = string
+  default     = "descope-main.sb.fullbay.com"
+}
+
 # Descope OIDC Configuration
 variable "descope_project_id" {
   description = "Descope Project ID for OIDC authentication on AppSync APIs"
