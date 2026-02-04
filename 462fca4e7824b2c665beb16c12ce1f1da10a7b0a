@@ -1,0 +1,21 @@
+Session Prompts:
+
+User: "Can you pull down the comments from copilot and address them?"
+- Fetched 16 Copilot review comments from PR #4
+- Addressed all 16 issues:
+  1. Version mismatch in s3_service/package.json
+  2. Production minify setting in vite.config.ts
+  3. Hardcoded Descope version in host-app
+  4. ADR review date clarification
+  5. authTokenProvider tests for s3_service
+  6. userDisplay test name inconsistency
+  7. DRY tenant mapping helper extraction
+  8. Localhost CORS in production (configurable)
+  9. StandaloneImagePage documentation fix
+  10. authTokenProvider tests for host-app
+  11. useTenant hook validation documentation
+  12. RemoteComponentWrapper formatting
+  13. Duplicate JSDoc in ImagesPage
+  14. CORS header restriction
+  15. ImageUploadPageProps type export
+  16. AuthTokenBridge tests
